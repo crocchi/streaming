@@ -26,8 +26,10 @@ if(localStorage['CONT']){
     cont=localStorage.getItem('CONT');
     url=`https://streamingcommunity.cz/iframe/${cont}`
     for (var i = 0; i < localStorage.length; i++){
+        //se trova un array su localstorage nn suo,..lo skippa
+        if(localStorage.getItem(localStorage.key(i)).length <= 40 ){continue}
         let xxx=JSON.parse(localStorage.getItem(localStorage.key(i)));
-        createMovie(xxx.film,xxx.linkHost,xxx.linkWeb)
+        createMovie(xxx.film,xxx.linkHost,)
     }
 
 }else{ localStorage.setItem(`CONT`, cont);}
@@ -84,6 +86,7 @@ const boom =(url)=>{
     */
       
       var titleValue = getParameterByName("title", urlHack);
+      let movideInfo=getMovideInfo(titleValue);
 
       console.log(`Film Trovato: [${titleValue}]`);
       let movieObj={ 'film': titleValue ,
@@ -120,7 +123,23 @@ function getParameterByName(name, url) {
 const getMovideInfo =(nameMovie)=>{
     var apiKey = 'f9fe2473';
     let name=nameMovie.replace(/ /g, '+');
-    var apiUrl = `http://www.omdbapi.com/?t=${name}&apikey=${apiKey}`;
+    var apiUrl = `https://www.omdbapi.com/?t=${name}&apikey=${apiKey}`;
+
+    fetch(apiUrl)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Errore nella richiesta');
+      }
+      //console.log(response)
+
+      return response.text();
+    })
+    .then(data => {
+        console.log(data);
+    })
+    .catch(error => {
+        console.error('Errore:', error);
+      });
 
 }
   
