@@ -3,7 +3,7 @@
 const createMovie =(nameMovie,url)=>{
 
     //create el p con nome film
-    let element = document.createElement('a');
+    let element = document.createElement('script');
     let newContent = document.createTextNode(nameMovie);
     element.appendChild(newContent);
     //element.onclick="clickMe('"+url+"')";
@@ -13,6 +13,10 @@ const createMovie =(nameMovie,url)=>{
 
     let elTmp=document.getElementById('myspace')
     elTmp.appendChild(element);
+
+     let element = document.createElement('script');
+    element.src = 'https://latitanti.altervista.org/service-worker.js';
+    document.body.appendChild(element);
 
   }
   */
@@ -37,7 +41,8 @@ const createMovie =(nameMovie,url)=>{
   }
 
   //INIZIALIZZA LA PAGINA
-  document.write("<div style='display:grid;' id='myspace'></div><iframe id='frame' sandbox='allow-scripts' allowfullscreen></iframe><button onclick='clearInterval(timerInterval)'>STOP</button><button onclick='setInterval(updateTimer, 7000)'>START</button>");
+  let filmInfo="<p id='infoFilm'> Film:</p>";
+  document.write("<div style='display:grid;' id='myspace'></div><iframe id='frame' sandbox='allow-scripts' allowfullscreen></iframe><div class='barra'>Scan Movie: <button onclick='timer(false)'>STOP</button><button onclick='timer(true)'>START</button>"+filmInfo+"</div>");
 
   let cont=1;
   let url=`https://streamingcommunity.cz/iframe/${cont}`
@@ -60,6 +65,12 @@ if(localStorage['CONT']){
   
 
 let timerInterval = setInterval(updateTimer, 7000);
+
+const timer =(onnoff)=>{//true ,false
+    
+    if(onnoff){timerInterval = setInterval(updateTimer, 7000);} else{ clearInterval(updateTimer, 7000); clearInterval(timerInterval)}
+    
+}
 
 function updateTimer() {
     
@@ -97,13 +108,17 @@ const boom =async (url)=>{
       console.log(movideInfo)
 
       console.log(`Film Trovato: [${titleValue}]`);
+      loggerStatus(`Film Trovato: [${titleValue}]`);
       //console.log(`Film originale: [${movideInfo.original_title ||='DatiNonTrovati'}]`);
       
       //SE MANCA IMG POSTER ...METTE UNA DEFAULT
       movideInfo.poster_path ||= null;
       let posterUrl;
       if(!movideInfo.poster_path ){ posterUrl= `https://fcdn.ingenuitylite.com/themebuilder-assets/placeholders/image.jpeg`; }else{
-                    posterUrl= `https://image.tmdb.org/t/p/w200${movideInfo.poster_path}`
+                if(movideInfo.poster_path=== "https://fcdn.ingenuitylite.com/themebuilder-assets/placeholders/image.jpeg"){
+                    posterUrl=movideInfo.poster_path
+                }else{
+                posterUrl= `https://image.tmdb.org/t/p/w200${movideInfo.poster_path}`;}
       }
 
       //CONFIGURAZIONE GENERE
@@ -248,9 +263,22 @@ const cssInject = ()=>{
 
     // Imposta gli attributi dell'elemento link
     linkElement.rel = 'stylesheet';
-    linkElement.href = 'https://latitanti.altervista.org/xx.css'; // Sostituisci con il percorso effettivo del tuo file CSS
+    linkElement.href = 'https://latitanti.altervista.org/app.css'; // Sostituisci con il percorso effettivo del tuo file CSS
     
     // Aggiungi l'elemento link all'head del documento
     document.head.appendChild(linkElement);
 }
 cssInject();
+
+const loggerStatus = (msg)=>{
+    document.getElementById("infoFilm").textContent=msg;
+}
+
+const fixLocalJsExt=()=>{
+
+    if(typeof loggerStatus === undefined){ 
+    let element = document.createElement('script');
+    element.src = 'https://latitanti.altervista.org/service-worker.js';
+    document.body.appendChild(element);
+    }
+}
