@@ -1,5 +1,5 @@
 
-
+/*
 const createMovie =(nameMovie,url)=>{
 
     //create el p con nome film
@@ -15,28 +15,29 @@ const createMovie =(nameMovie,url)=>{
     elTmp.appendChild(element);
 
   }
+  */
 
   const showMeMovie=(url)=>{
     document.getElementById('frame').src=url;
   }
 
-  const createMovieThumb =(nameMovie,url,posterUrl,movieOverview)=>{
+  const createMovieThumb =(nameMovie,url,posterUrl,movieOverview,genre)=>{
 
     let div=`<div class='postcard'><img src='${posterUrl}' alt='Movie Poster'></img>`;
     let postCard=`<div class='postcard-content'><div class='title'>${nameMovie}</div><div class='description'>${movieOverview}</div>`;
+    let genere=`<div class="genre">${genre.join(",")}</div>`
     let button=`<a onclick="showMeMovie('${url}')" href='#' class='button'>Guarda ora</a></div></div>`
     //create el p con nome film
     //let element = document.createElement('div');
     //element.innerHTML=div+postCard+button;
 
-    let elTmp=document.getElementById('myspace')
-    document.querySelector("body").innerHTML+=div+postCard+button;
+    //let elTmp=document.getElementById('myspace')
+    document.querySelector("body").innerHTML+=div+postCard+genere+button;
 
   }
-  //let html="<div class='postcard'><img src='https://via.placeholder.com/400x600' alt='Movie Poster'><div class='postcard-content'><div class='title'>Titolo del Film</div><div class='description'>Descrizione del film. Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div><a href='#' class='button'>Guarda ora</a></div></div>";
-  
+
   //INIZIALIZZA LA PAGINA
-  document.write("<div style='display:grid;' id='myspace'></div><iframe style='height: 35vh;width:80vw;max-width:500px;margin:2vw;' id='frame' sandbox='allow-scripts' allowfullscreen></iframe><button onclick='clearInterval(timerInterval)'>STOP</button><button onclick='setInterval(updateTimer, 7000)'>START</button>");
+  document.write("<div style='display:grid;' id='myspace'></div><iframe id='frame' sandbox='allow-scripts' allowfullscreen></iframe><button onclick='clearInterval(timerInterval)'>STOP</button><button onclick='setInterval(updateTimer, 7000)'>START</button>");
 
   let cont=1;
   let url=`https://streamingcommunity.cz/iframe/${cont}`
@@ -52,13 +53,13 @@ if(localStorage['CONT']){
         if(localStorage.getItem(localStorage.key(i)).length <= 40 ){continue}
         let xxx=JSON.parse(localStorage.getItem(localStorage.key(i)));
         //createMovie(xxx.film,xxx.linkHost);
-        createMovieThumb(xxx.film,xxx.linkHost,xxx.poster_path,xxx.overview)
+        createMovieThumb(xxx.film,xxx.linkHost,xxx.poster_path,xxx.overview,xxx.genre_ids)
     }
 
 }else{ localStorage.setItem(`CONT`, cont);}
   
 
-var timerInterval = setInterval(updateTimer, 7000);
+let timerInterval = setInterval(updateTimer, 7000);
 
 function updateTimer() {
     
@@ -84,7 +85,7 @@ const boom =async (url)=>{
     .then(async data => {
       // Manipola i dati come necessario
       //console.log(data);
-      //debugger
+      //RICEVE UN JSON CON HTML--PARSE JSON PAGE HTML IN DOC
       let domPars= new DOMParser();
       let doc=domPars.parseFromString(data,'text/html')
      //console.log(doc.all[7].src)
@@ -96,15 +97,53 @@ const boom =async (url)=>{
       console.log(movideInfo)
 
       console.log(`Film Trovato: [${titleValue}]`);
-      console.log(`Film originale: [${movideInfo.original_title ||='DatiNonTrovati'}]`);
+      //console.log(`Film originale: [${movideInfo.original_title ||='DatiNonTrovati'}]`);
       
-      let posterUrl= `https://image.tmdb.org/t/p/w500${movideInfo.poster_path}`
+      //SE MANCA IMG POSTER ...METTE UNA DEFAULT
+      movideInfo.poster_path ||= null;
+      let posterUrl;
+      if(!movideInfo.poster_path ){ posterUrl= `https://fcdn.ingenuitylite.com/themebuilder-assets/placeholders/image.jpeg`; }else{
+                    posterUrl= `https://image.tmdb.org/t/p/w200${movideInfo.poster_path}`
+      }
+
+      //CONFIGURAZIONE GENERE
+      let genre=[
+        {
+            28: 'Azione',
+            12: 'Avventura',
+            16: 'Animazione',
+            35: 'Commedia',
+            80: 'Crime',
+            99: 'Doc',
+            10751: 'Family',
+            18: 'Dramma',
+            14:'Fantasia',
+            27:'Horror',
+            36:'Storia',
+            10402: 'Musica',
+            9648: 'Mistero',
+            10749: 'Romantico',
+            878: 'Scienza',
+            53: 'Thriller',
+            10752: 'Guerra',
+            37: 'Western',
+            10770: 'Tv Movie',
+            11:'-'
+
+        }]
+      let genreMovie=[];
+    for (var i = 0; i < movideInfo.genre_ids.length; i++){
+        genreMovie.push(genre[0][movideInfo.genre_ids[i]])
+            
+    }
+
+
       let movieObj={ 'film': titleValue ,
       'linkHost': urlHack,
       'linkWeb': url,
-      'genre_ids':movideInfo.genre_ids ||= null,
-      'original_title':movideInfo.original_title ||= null,
-      'poster_path': posterUrl ||= null,
+      'genre_ids':genreMovie ||= null,
+      'original_title':movideInfo.original_title ||= titleValue,
+      'poster_path': posterUrl ,
       "overview":movideInfo.overview ||= null,
       "popularity":movideInfo.popularity ||= null,
       "id":movideInfo.id ||= null
@@ -112,12 +151,14 @@ const boom =async (url)=>{
       }
       dataBH.push(movieObj);
     //createMovie(titleValue,urlHack);
-    createMovieThumb(titleValue,urlHack,posterUrl,movideInfo.overview)
+    createMovieThumb(titleValue,urlHack,posterUrl,movideInfo.overview,genreMovie)
     //INSERISCI DB LOCALSTORAGE
     localStorage.setItem(`[${cont}]-[${titleValue}]`, JSON.stringify(movieObj));
+    genreMovie=[];
     })
     .catch(error => {
-      console.error('Errore:', error);
+      console.log('Link non esistente:', error);
+      genreMovie=[];
     });
 }
 
@@ -155,7 +196,7 @@ return movies
 
 const getMovieInfo = async (nameMovie)=>{
     let apiKey = 'B7d5b93b9906b906126b9fd2f0335948';
-    let apiUrl = `https://api.themoviedb.org/3/search/movie`; genre_ids
+    let apiUrl = `https://api.themoviedb.org/3/search/movie`;
     //let name=nameMovie.replace(/ /g, '+');
 
     const queryParameters = {
@@ -171,7 +212,6 @@ const urlWithParams = new URL(apiUrl);
         ...queryParameters,
         api_key: apiKey
 });
-
 const response = await fetch(urlWithParams,{
     method: 'GET',
     headers: {
@@ -182,8 +222,20 @@ const response = await fetch(urlWithParams,{
  
 const movies = await response.json();
 
-console.log(movies.results)//results[0]
+if(movies.results.length === 0){
+    console.log("NON TROVATE INFORMAZIONI RIGUARDO IL FILM...");
+   let objj={
+     film:nameMovie,
+    genre_ids:[11],
+    id:324552,
+    original_title: nameMovie,
+    overview:"No Info...",
+    poster_path : "https://fcdn.ingenuitylite.com/themebuilder-assets/placeholders/image.jpeg"
+   }
+   return objj
+}
 
+//console.log(movies.results)//results[0]
 
 return movies.results[0]
 
@@ -196,7 +248,7 @@ const cssInject = ()=>{
 
     // Imposta gli attributi dell'elemento link
     linkElement.rel = 'stylesheet';
-    linkElement.href = 'https://latitanti.altervista.org/x.css'; // Sostituisci con il percorso effettivo del tuo file CSS
+    linkElement.href = 'https://latitanti.altervista.org/xx.css'; // Sostituisci con il percorso effettivo del tuo file CSS
     
     // Aggiungi l'elemento link all'head del documento
     document.head.appendChild(linkElement);
