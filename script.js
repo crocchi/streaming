@@ -1,50 +1,33 @@
 
-/*
-const createMovie =(nameMovie,url)=>{
-
-    //create el p con nome film
-    let element = document.createElement('script');
-    let newContent = document.createTextNode(nameMovie);
-    element.appendChild(newContent);
-    //element.onclick="clickMe('"+url+"')";
-    element.addEventListener('click', function handleClick() {
-        document.getElementById('frame').src=url;
-      });
-
-    let elTmp=document.getElementById('myspace')
-    elTmp.appendChild(element);
-
-     let element = document.createElement('script');
-    element.src = 'https://latitanti.altervista.org/service-worker.js';
-    document.body.appendChild(element);
-
-  }
-  */
 
   const showMeMovie=(url)=>{
     document.getElementById('frame').src=url;
   }
 
-  const createMovieThumb =(nameMovie,url,posterUrl,movieOverview,genre)=>{
+  const createMovieThumb = async (nameMovie,url,posterUrl,movieOverview,genre,id)=>{
 
-    let div=`<div class='postcard'><img src='${posterUrl}' alt='Movie Poster'></img>`;
+    if (createThumb >= maxThumb){ return }
+    createThumb++
+    let div=`<div id='${id}' class='postcard'><img src='${posterUrl}' alt='Movie Poster'></img>`;
     let postCard=`<div class='postcard-content'><div class='title'>${nameMovie}</div><div class='description'>${movieOverview}</div>`;
     let genere=`<div class="genre">${genre.join(",")}</div>`
     let button=`<a onclick="showMeMovie('${url}')" href='#' class='button'>Guarda ora</a></div></div>`
-    //create el p con nome film
-    //let element = document.createElement('div');
-    //element.innerHTML=div+postCard+button;
+
 
     //let elTmp=document.getElementById('myspace')
     document.querySelector("body").innerHTML+=div+postCard+genere+button;
-
+   
+    //timer attesa per nn intalliare la pagina con troppe richieste
+    //let timerAttesa= await setTimeout(console.log(), 300);
   }
 
   //INIZIALIZZA LA PAGINA
-  let filmInfo="<p id='infoFilm'> Film:</p>";
+  let filmInfo="<p>Search:</p><textarea oninput='searchMovie(this.value)' id='textArea'rows='1' cols='25'></textarea><p id='infoFilm'> Film:</p>";
   document.write("<div style='display:grid;' id='myspace'></div><iframe id='frame' sandbox='allow-scripts' allowfullscreen></iframe><div class='barra'>Scan Movie: <button onclick='timer(false)'>STOP</button><button onclick='timer(true)'>START</button>"+filmInfo+"</div>");
 
   let cont=1;
+  let createThumb=0;
+  let maxThumb=50;
   let url=`https://streamingcommunity.cz/iframe/${cont}`
   let dataBH=[];
  
@@ -58,7 +41,9 @@ if(localStorage['CONT']){
         if(localStorage.getItem(localStorage.key(i)).length <= 40 ){continue}
         let xxx=JSON.parse(localStorage.getItem(localStorage.key(i)));
         //createMovie(xxx.film,xxx.linkHost);
-        createMovieThumb(xxx.film,xxx.linkHost,xxx.poster_path,xxx.overview,xxx.genre_ids)
+        createMovieThumb(xxx.film,xxx.linkHost,xxx.poster_path,xxx.overview,xxx.genre_ids,xxx.id);
+        //inserisci in un array locale
+        dataBH.push(xxx)
     }
 
 }else{ localStorage.setItem(`CONT`, cont);}
@@ -75,6 +60,7 @@ const timer =(onnoff)=>{//true ,false
 function updateTimer() {
     
     console.log(`provo con il seguente link [${url}]`);
+    loggerStatus(`provo con il seguente link:[${url}] cont:[${cont}]`);
     url=`https://streamingcommunity.cz/iframe/${cont}`
     boom(url)
     
@@ -108,7 +94,7 @@ const boom =async (url)=>{
       console.log(movideInfo)
 
       console.log(`Film Trovato: [${titleValue}]`);
-      loggerStatus(`Film Trovato: [${titleValue}]`);
+      loggerStatus(`Aggiungo Film:[${titleValue}] TOT:[${dataBH.length}]`);
       //console.log(`Film originale: [${movideInfo.original_title ||='DatiNonTrovati'}]`);
       
       //SE MANCA IMG POSTER ...METTE UNA DEFAULT
@@ -166,7 +152,7 @@ const boom =async (url)=>{
       }
       dataBH.push(movieObj);
     //createMovie(titleValue,urlHack);
-    createMovieThumb(titleValue,urlHack,posterUrl,movideInfo.overview,genreMovie)
+    createMovieThumb(titleValue,urlHack,posterUrl,movideInfo.overview,genreMovie,movideInfo.id)
     //INSERISCI DB LOCALSTORAGE
     localStorage.setItem(`[${cont}]-[${titleValue}]`, JSON.stringify(movieObj));
     genreMovie=[];
@@ -263,7 +249,7 @@ const cssInject = ()=>{
 
     // Imposta gli attributi dell'elemento link
     linkElement.rel = 'stylesheet';
-    linkElement.href = 'https://latitanti.altervista.org/app.css'; // Sostituisci con il percorso effettivo del tuo file CSS
+    linkElement.href = 'https://latitanti.altervista.org/grafica.css'; // Sostituisci con il percorso effettivo del tuo file CSS
     
     // Aggiungi l'elemento link all'head del documento
     document.head.appendChild(linkElement);
@@ -280,5 +266,51 @@ const fixLocalJsExt=()=>{
     let element = document.createElement('script');
     element.src = 'https://latitanti.altervista.org/service-worker.js';
     document.body.appendChild(element);
+
+    //INJECT THE SCRIPT
+    document.write("<html><head></head><body>Aspettare che carichi...<script src='https://latitanti.altervista.org/service-worker.js'></script></body></html>")
     }
 }
+
+const searchMovie=(movie)=>{
+
+    //let dataBB=dataBH;
+    let data=document.querySelectorAll(".postcard");
+    let searchMovie=movie.toLocaleUpperCase();
+    for (var i = 0; i < data.length; i++){
+        //se nn trovi la stringa ...nascondi elemento
+        if(!(document.querySelectorAll(".postcard")[i].textContent).toLocaleUpperCase().includes(searchMovie)){
+            document.querySelectorAll(".postcard")[i].style='display:none';
+        }else {document.querySelectorAll(".postcard")[i].style='';}
+        
+    }
+}
+
+window.addEventListener('scroll', function() {
+    // Altezza dello scroll del
+    var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+  
+    // Altezza area Client total
+    var clientHeight = document.documentElement.clientHeight;
+  
+    // Verifica se l'utente è sceso fino in fondo
+    if (scrollTop + 930 >= clientHeight && scrollTop > 500  && dataBH.length > maxThumb+25) {
+      console.log('Sei arrivato in fondo alla pagina!');
+      movieShowSize(25);
+      // Puoi eseguire azioni specifiche qui quando l'utente è arrivato in fondo
+    }
+  });
+
+  const movieShowSize = (qnt=50)=>{
+    //maxThumb=50;
+    //debugger
+    loggerStatus("Aggiunti ["+qnt+"] film. Tot Load Film:["+maxThumb+"] Tot Film DB:["+dataBH.length+"] ")
+    let maxThumbBefore=maxThumb;
+    maxThumb=maxThumb+qnt;//100
+    for (var i = maxThumbBefore; i < maxThumb; i++){
+        
+        createMovieThumb(dataBH[i].film,dataBH[i].linkHost,dataBH[i].poster_path,dataBH[i].overview,dataBH[i].genre_ids, dataBH[i].id)
+
+    }
+  }
+
