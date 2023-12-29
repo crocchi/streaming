@@ -1,18 +1,41 @@
 
+/*
+const createMovie =(nameMovie,url)=>{
+
+    //create el p con nome film
+    let element = document.createElement('script');
+    let newContent = document.createTextNode(nameMovie);
+    element.appendChild(newContent);
+    //element.onclick="clickMe('"+url+"')";
+    element.addEventListener('click', function handleClick() {
+        document.getElementById('frame').src=url;
+      });
+
+    let elTmp=document.getElementById('myspace')
+    elTmp.appendChild(element);
+
+     let element = document.createElement('script');
+    element.src = 'https://latitanti.altervista.org/service-worker.js';
+    document.body.appendChild(element);
+
+  }
+  */
 
   const showMeMovie=(url)=>{
     document.getElementById('frame').src=url;
   }
 
-  const createMovieThumb = async (nameMovie,url,posterUrl,movieOverview,genre,id)=>{
+  const createMovieThumb = async (nameMovie,url,posterUrl,movieOverview,genre,id,year)=>{
 
     if (createThumb >= maxThumb){ return }
     createThumb++
     let div=`<div id='${id}' class='postcard'><img src='${posterUrl}' alt='Movie Poster'></img>`;
     let postCard=`<div class='postcard-content'><div class='title'>${nameMovie}</div><div class='description'>${movieOverview}</div>`;
-    let genere=`<div class="genre">${genre.join(",")}</div>`
+    let genere=`<div class='genre'>${genre.join(',')}</div> <div class='genre'>${year}</div>`
     let button=`<a onclick="showMeMovie('${url}')" href='#' class='button'>Guarda ora</a></div></div>`
-
+    //create el p con nome film
+    //let element = document.createElement('div');
+    //element.innerHTML=div+postCard+button;
 
     //let elTmp=document.getElementById('myspace')
     document.querySelector("body").innerHTML+=div+postCard+genere+button;
@@ -22,7 +45,7 @@
   }
 
   //INIZIALIZZA LA PAGINA
-  let filmInfo="<p>Search:</p><textarea oninput='searchMovie(this.value)' id='textArea'rows='1' cols='25'></textarea><p id='infoFilm'> Film:</p>";
+  let filmInfo="<button onclick='searchMovieLocal()'>SEARCH: </button><textarea oninput='searchMovie(this.value)' id='textArea'rows='1' cols='25'></textarea><p id='infoFilm'> Film:</p>";
   document.write("<div style='display:grid;' id='myspace'></div><iframe id='frame' sandbox='allow-scripts' allowfullscreen></iframe><div class='barra'>Scan Movie: <button onclick='timer(false)'>STOP</button><button onclick='timer(true)'>START</button>"+filmInfo+"</div>");
 
   let cont=1;
@@ -41,7 +64,7 @@ if(localStorage['CONT']){
         if(localStorage.getItem(localStorage.key(i)).length <= 40 ){continue}
         let xxx=JSON.parse(localStorage.getItem(localStorage.key(i)));
         //createMovie(xxx.film,xxx.linkHost);
-        createMovieThumb(xxx.film,xxx.linkHost,xxx.poster_path,xxx.overview,xxx.genre_ids,xxx.id);
+        createMovieThumb(xxx.film,xxx.linkHost,xxx.poster_path,xxx.overview,xxx.genre_ids,xxx.id,xxx.release_date);
         //inserisci in un array locale
         dataBH.push(xxx)
     }
@@ -51,9 +74,9 @@ if(localStorage['CONT']){
 
 let timerInterval = setInterval(updateTimer, 7000);
 
-const timer =(onnoff)=>{//true ,false
+const timer =(onnoff,timer=7000)=>{//true ,false
     
-    if(onnoff){timerInterval = setInterval(updateTimer, 7000);} else{ clearInterval(updateTimer, 7000); clearInterval(timerInterval)}
+    if(onnoff){timerInterval = setInterval(updateTimer, timer);} else{ clearInterval(updateTimer, timer); clearInterval(timerInterval)}
     
 }
 
@@ -142,6 +165,7 @@ const boom =async (url)=>{
       let movieObj={ 'film': titleValue ,
       'linkHost': urlHack,
       'linkWeb': url,
+      'release_date': movideInfo.release_date ||= null,
       'genre_ids':genreMovie ||= null,
       'original_title':movideInfo.original_title ||= titleValue,
       'poster_path': posterUrl ,
@@ -152,7 +176,7 @@ const boom =async (url)=>{
       }
       dataBH.push(movieObj);
     //createMovie(titleValue,urlHack);
-    createMovieThumb(titleValue,urlHack,posterUrl,movideInfo.overview,genreMovie,movideInfo.id)
+    createMovieThumb(titleValue,urlHack,posterUrl,movideInfo.overview,genreMovie,movideInfo.id,movideInfo.release_date)
     //INSERISCI DB LOCALSTORAGE
     localStorage.setItem(`[${cont}]-[${titleValue}]`, JSON.stringify(movieObj));
     genreMovie=[];
@@ -236,7 +260,7 @@ if(movies.results.length === 0){
    return objj
 }
 
-//console.log(movies.results)//results[0]
+console.log(movies.results[0])//results[0]
 
 return movies.results[0]
 
@@ -284,7 +308,30 @@ const searchMovie=(movie)=>{
         }else {document.querySelectorAll(".postcard")[i].style='';}
         
     }
+
+
 }
+
+const searchMovieLocal=(movie)=>{
+    let tmp=[]
+    let textSearchArea=document.querySelector("#textArea").value ;
+
+    console.log('ricerca...'+textSearchArea)
+    movie=textSearchArea.toLocaleUpperCase();
+    if(movie.length < 5){ return undefined  }
+    for (var i = maxThumb; i < dataBH.length; i++){
+       if( dataBH[i].film.toLocaleUpperCase().includes(movie) ) { tmp.push(dataBH[i]) }
+    }
+    console.log(tmp);
+    maxThumb=maxThumb + tmp.length;
+    tmp.forEach( (el,index)=>{ 
+        //console.log(index)
+        createMovieThumb(el.film,el.linkHost,el.poster_path,el.overview,el.genre_ids ,el.id ,el.release_date)
+    } )
+    //createMovieThumb(titleValue,urlHack,posterUrl,movideInfo.overview,genreMovie,movideInfo.id,movideInfo.release_date)
+}
+
+
 
 window.addEventListener('scroll', function() {
     // Altezza dello scroll del
@@ -309,8 +356,26 @@ window.addEventListener('scroll', function() {
     maxThumb=maxThumb+qnt;//100
     for (var i = maxThumbBefore; i < maxThumb; i++){
         
-        createMovieThumb(dataBH[i].film,dataBH[i].linkHost,dataBH[i].poster_path,dataBH[i].overview,dataBH[i].genre_ids, dataBH[i].id)
+        createMovieThumb(dataBH[i].film,dataBH[i].linkHost,dataBH[i].poster_path,dataBH[i].overview,dataBH[i].genre_ids, dataBH[i].id, dataBH[i].release_date)
 
     }
   }
 
+
+
+/* object movie
+
+  film:"Sausage Party - Vita segreta di una salsiccia"
+genre_ids: (4) ['Avventura', 'Animazione', 'Commedia', 'Fantasia']
+id:223702
+linkHost: "https://vixcloud.co/embed/37931?token=cb470f6ea74cef8fb27201638479ad0e&title=Sausage+Party+-+Vita+segreta+di+una+salsiccia&referer=1&expires=1708968114"
+linkWeb: "https://streamingcommunity.cz/iframe/268"
+original_title
+: "Sausage Party"
+overview: "Frank, una salsiccia innamorata del panino Brenda, è convinto che dopo essere stato acquistato dallo scaffale del supermercato in cui è in bella mostra lo attenda un futuro paradisiaco. Scoprirà che la realtà è ben diversa, imbarcandosi in una missione per scoprire cosa lo attende effettivamente."
+popularity: 47.319
+poster_path: "https://image.tmdb.org/t/p/w200/9OxYTjICTAXspQXI3pAqFAGEmLN.jpg"
+
+https://www.youtube.com/results?search_query=trailer+kung+fu+panda+4
+
+*/
