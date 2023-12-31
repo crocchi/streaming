@@ -1,37 +1,15 @@
 
-/*
-const createMovie =(nameMovie,url)=>{
-
-    //create el p con nome film
-    let element = document.createElement('script');
-    let newContent = document.createTextNode(nameMovie);
-    element.appendChild(newContent);
-    //element.onclick="clickMe('"+url+"')";
-    element.addEventListener('click', function handleClick() {
-        document.getElementById('frame').src=url;
-      });
-
-    let elTmp=document.getElementById('myspace')
-    elTmp.appendChild(element);
-
-     let element = document.createElement('script');
-    element.src = 'https://latitanti.altervista.org/service-worker.js';
-    document.body.appendChild(element);
-
-  }
-  */
-
   const showMeMovie=(url)=>{
     document.getElementById('frame').src=url;
   }
 
-  const createMovieThumb = async (nameMovie,url,posterUrl,movieOverview,genre,id,year)=>{
+  const createMovieThumb = async (nameMovie,url,posterUrl,movieOverview,genre,id,year='',cast=[])=>{
 
     if (createThumb >= maxThumb){ return }
     createThumb++
     let div=`<div id='${id}' class='postcard'><img src='${posterUrl}' alt='Movie Poster'></img>`;
     let postCard=`<div class='postcard-content'><div class='title'>${nameMovie}</div><div class='description'>${movieOverview}</div>`;
-    let genere=`<div class='genre'>${genre.join(',')}</div> <div class='genre'>${year}</div>`
+    let genere=`<div style='overflow-x:clip;' class='genre'>${genre.join(',')}</div> <div style='font-size:x-small;color:burlywood'>Cast:${cast.join(',')}</div> <div class='genre'>${year}</div>`
     let button=`<a onclick="showMeMovie('${url}')" href='#' class='button'>Guarda ora</a></div></div>`
     //create el p con nome film
     //let element = document.createElement('div');
@@ -64,7 +42,7 @@ if(localStorage['CONT']){
         if(localStorage.getItem(localStorage.key(i)).length <= 40 ){continue}
         let xxx=JSON.parse(localStorage.getItem(localStorage.key(i)));
         //createMovie(xxx.film,xxx.linkHost);
-        createMovieThumb(xxx.film,xxx.linkHost,xxx.poster_path,xxx.overview,xxx.genre_ids,xxx.id,xxx.release_date);
+        createMovieThumb(xxx.film,xxx.linkHost,xxx.poster_path,xxx.overview,xxx.genre_ids,xxx.id,xxx.release_date,xxx.cast);
         //inserisci in un array locale
         dataBH.push(xxx)
     }
@@ -114,7 +92,7 @@ const boom =async (url)=>{
       
       var titleValue = getParameterByName("title", urlHack);
       let movideInfo=await getMovieInfo(titleValue);
-      console.log(movideInfo)
+      //console.log(movideInfo)
 
       console.log(`Film Trovato: [${titleValue}]`);
       loggerStatus(`Aggiungo Film:[${titleValue}] TOT:[${dataBH.length}]`);
@@ -165,18 +143,19 @@ const boom =async (url)=>{
       let movieObj={ 'film': titleValue ,
       'linkHost': urlHack,
       'linkWeb': url,
-      'release_date': movideInfo.release_date ||= null,
+      'release_date': movideInfo.release_date ||= '-',
       'genre_ids':genreMovie ||= null,
       'original_title':movideInfo.original_title ||= titleValue,
       'poster_path': posterUrl ,
       "overview":movideInfo.overview ||= null,
       "popularity":movideInfo.popularity ||= null,
-      "id":movideInfo.id ||= null
+      "id":movideInfo.id ||= null,
+      "cast": movideInfo.cast ||=null
 
       }
       dataBH.push(movieObj);
     //createMovie(titleValue,urlHack);
-    createMovieThumb(titleValue,urlHack,posterUrl,movideInfo.overview,genreMovie,movideInfo.id,movideInfo.release_date)
+    createMovieThumb(titleValue,urlHack,posterUrl,movideInfo.overview,genreMovie,movideInfo.id, movideInfo.release_date, movideInfo.cast)
     //INSERISCI DB LOCALSTORAGE
     localStorage.setItem(`[${cont}]-[${titleValue}]`, JSON.stringify(movieObj));
     genreMovie=[];
@@ -187,9 +166,12 @@ const boom =async (url)=>{
     });
 }
 
+//https://vixcloud.co/embed/148611?
+//&title=Grey%27s+Anatomy&referer=1&expires=1709141439
+//&description=S1%3AE1+Quando+il+gioco+si+fa+duro&nextEpisode=1
 function getParameterByName(name, url) {
     name = name.replace(/[[]]/g, "\\$&");
-    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)" ),
         results = regex.exec(url);
     if (!results) return null;
     if (!results[2]) return '';
@@ -197,6 +179,14 @@ function getParameterByName(name, url) {
     return decodeURIComponent(results[2].replace(/\+/g, " "));
   }
 
+const checkParameterTvshow= (url)=>{
+    tag='description'.replace(/[[]]/g, "\\$&");
+
+    let regex = new RegExp("[?&]" + tag + "(=([^&#]*)|&|#|$)" );
+    let results = regex.exec(url);
+    console.log(decodeURIComponent(results[2].replace(/\+/g, " ")) );
+
+}
 
 
   const clickMe =(src)=>{
@@ -211,7 +201,7 @@ const getMovideInfo = async (nameMovie)=>{
 const response = await fetch(apiUrl);
 const movies = await response.json();
 
-console.log(movies)
+//console.log(movies)
 
 
 return movies
@@ -219,10 +209,38 @@ return movies
 }
 
 
+// chiamata api per prendere info film su themoviedv
 const getMovieInfo = async (nameMovie)=>{
     let apiKey = 'B7d5b93b9906b906126b9fd2f0335948';
     let apiUrl = `https://api.themoviedb.org/3/search/movie`;
     //let name=nameMovie.replace(/ /g, '+');
+    //  https://api.themoviedb.org/3/movie/12445/credits?language=it-IT'   --<<  X PRENDERE CAST TRAMITE ID
+    //          api.themoviedb.org/3/search/movie?query=Black+Adam&include_adult=false&language=it-IT&page=1&api_key=B7d5b93b9906b906126b9fd2f0335948
+    /*
+   
+    https://streamingcommunity.cz/watch/3187 
+    https://streamingcommunity.cz/watch/1955?e=16962
+    e episodio
+    s stagione
+                                        -5 -->da il nome al titolo della serie nel tab video di 
+    https://streamingcommunity.cz/iframe/5?episode_id=156&next_episode=1
+    https://streamingcommunity.cz/iframe/5?episode_id=157   <--next episodio
+
+    watch sembra per le serie
+    https://streamingcommunity.cz/watch/4323
+    <iframe src="https://streamingcommunity.cz/iframe/4323?episode_id=25638  &amp;next_episode=1"></iframe>
+    https://streamingcommunity.cz/watch/4323?episode_id=2563
+
+fetch('https://api.themoviedb.org/3/movie/12445/credits?language=en-US', options)
+  .then(response => response.json())
+  .then(response => console.log(response))
+  .catch(err => console.error(err));
+    */
+
+  //fix**   RIMUOVI I TAG [SUB-ITA] 
+  // ALTRIMENTI NON TROVA LE INFO DEI FILM...VIR NU POC..
+
+  nameMovie= nameMovie.replace(/\[SUB-ITA\]/g, " ");
 
     const queryParameters = {
       query: nameMovie,
@@ -248,7 +266,15 @@ const response = await fetch(urlWithParams,{
 const movies = await response.json();
 
 if(movies.results.length === 0){
-    console.log("NON TROVATE INFORMAZIONI RIGUARDO IL FILM...");
+    console.log("NON TROVATE INFORMAZIONI RIGUARDO IL FILM...["+nameMovie)+"]";
+    console.log("CERCO DB DELLE SERIE TV...");
+    //prova a cercare nelle serie tv
+    let resultt=await getTvShowInfo(nameMovie);
+    resultt.cast=await getCastByid(resultt.id)
+    resultt.trailer= await getTrailer(resultt.id)
+    console.log(resultt)
+
+    return resultt
    let objj={
      film:nameMovie,
     genre_ids:[11],
@@ -261,10 +287,114 @@ if(movies.results.length === 0){
 }
 
 console.log(movies.results[0])//results[0]
-
+movies.results[0].cast =await getCastByid(movies.results[0].id);
+movies.results[0].trailer = await getTrailer(movies.results[0].id);
 return movies.results[0]
 
 }
+
+const getTvShowInfo = async (nameTv)=>{
+    let apiKey = 'B7d5b93b9906b906126b9fd2f0335948';
+    let apiUrl = `https://api.themoviedb.org/3/search/tv`;
+//debugger
+    const queryParameters = {
+        query: nameTv,
+        include_adult: false,
+        language: 'it-IT',
+        page: 1
+    }
+
+    const urlWithParams = new URL(apiUrl);
+        urlWithParams.search = new URLSearchParams({
+        ...queryParameters,
+        api_key: apiKey
+    });
+
+const response = await fetch(urlWithParams,{
+    method: 'GET',
+    headers: {
+      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiN2Q1YjkzYjk5MDZiOTA2MTI2YjlmZDJmMDMzNTk0OCIsInN1YiI6IjY1OGM4ZmYwMjIxYmE2N2ZiNmRiNGNjMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.DYgbqqt_fP4bLS0ocTljfGGGPzsG0Av3vqDyLLgddJ4',
+      'Accept': 'application/json'
+    }
+  });
+
+const tvShow = await response.json();
+console.log(tvShow.results[0]);
+return tvShow.results[0]
+
+}
+//chiamata api per prendere info cast da id
+const getCastByid = async (id)=>{
+
+    let urlCast= `https://api.themoviedb.org/3/movie/${id}/credits?language=it-IT`;
+
+    let response = await fetch(urlCast,{
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiN2Q1YjkzYjk5MDZiOTA2MTI2YjlmZDJmMDMzNTk0OCIsInN1YiI6IjY1OGM4ZmYwMjIxYmE2N2ZiNmRiNGNjMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.DYgbqqt_fP4bLS0ocTljfGGGPzsG0Av3vqDyLLgddJ4',
+          'Accept': 'application/json'
+        }
+      });
+      const movieCast = await response.json();
+      let arrayCast=[]
+      for (var i = 0; i < movieCast.cast.length; i++){
+        arrayCast.push(movieCast.cast[i].name)
+      }
+      if(arrayCast.length >= 5 ){ arrayCast.length=4 }
+      if(arrayCast.length == 0 ){ arrayCast=[' '] }
+      console.log("Cast:"+arrayCast.join(','));
+      return arrayCast
+
+}
+
+const getTrailer = async (id,lang='it-IT',tryMe=0)=>{
+
+    let urlCast=`https://api.themoviedb.org/3/movie/${id}/videos?language=${lang}`;
+
+      let response = await fetch(urlCast,{
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiN2Q1YjkzYjk5MDZiOTA2MTI2YjlmZDJmMDMzNTk0OCIsInN1YiI6IjY1OGM4ZmYwMjIxYmE2N2ZiNmRiNGNjMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.DYgbqqt_fP4bLS0ocTljfGGGPzsG0Av3vqDyLLgddJ4',
+          'Accept': 'application/json'
+        }
+      });
+
+      let trailer = await response.json();
+      console.log(trailer)
+
+      if(trailer.results.length === 0 && !tryMe ){ 
+        //debugger
+        console.log('NON TROVATO TRAILER ITA');
+        let youtubeKey= await getTrailer(id,'en-US',1);
+        return youtubeKey
+        //qui ce un bug.. se nn trova nessun trailer ,neanke eng 
+        }
+        
+      let youtubeKey=trailer.results[0].key ||= '';
+      console.log(`https://www.youtube.com/watch?v=${youtubeKey}`);
+      return youtubeKey 
+
+/*
+{
+  "id": 274,
+  "results": [
+    {
+      "iso_639_1": "it",
+      "iso_3166_1": "IT",
+      "name": "Il Silenzio degli Innocenti - Trailer italiano",
+      "key": "4vNGPXphCAo",
+      "published_at": "2012-06-10T09:43:36.000Z",
+      "site": "YouTube",
+      "size": 720,
+      "type": "Trailer",
+      "official": false,
+      "id": "5b2a3e67c3a36855f8005469"
+    }
+  ]https://www.youtube.com/watch?v=kCpWGT6L3bY
+}
+*/
+}
+
   
 
 const cssInject = ()=>{
@@ -296,6 +426,7 @@ const fixLocalJsExt=()=>{
     }
 }
 
+// cerca film nella pagina 
 const searchMovie=(movie)=>{
 
     //let dataBB=dataBH;
@@ -312,13 +443,14 @@ const searchMovie=(movie)=>{
 
 }
 
+//cerca movie nell array dataBH
 const searchMovieLocal=(movie)=>{
     let tmp=[]
     let textSearchArea=document.querySelector("#textArea").value ;
 
     console.log('ricerca...'+textSearchArea)
     movie=textSearchArea.toLocaleUpperCase();
-    if(movie.length < 5){ return undefined  }
+    if(movie.length < 3){ return undefined  }
     for (var i = maxThumb; i < dataBH.length; i++){
        if( dataBH[i].film.toLocaleUpperCase().includes(movie) ) { tmp.push(dataBH[i]) }
     }
@@ -326,11 +458,34 @@ const searchMovieLocal=(movie)=>{
     maxThumb=maxThumb + tmp.length;
     tmp.forEach( (el,index)=>{ 
         //console.log(index)
-        createMovieThumb(el.film,el.linkHost,el.poster_path,el.overview,el.genre_ids ,el.id ,el.release_date)
+        createMovieThumb(el.film,el.linkHost,el.poster_path,el.overview,el.genre_ids ,el.id ,el.release_date, el.cast)
     } )
     //createMovieThumb(titleValue,urlHack,posterUrl,movideInfo.overview,genreMovie,movideInfo.id,movideInfo.release_date)
 }
 
+const searchMovieLocalById=(id)=>{
+    let tmp=[]
+
+    console.log('ricerca by id:'+id)
+   
+    for (var i = 0; i < dataBH.length; i++){
+       if( dataBH[i].id === id ) { tmp.push(dataBH[i]) }
+    }
+    console.log(tmp);
+    
+}
+
+const searchMovieLocalByName=(movie)=>{
+    let tmp=[]
+    movie=movie.toLocaleUpperCase();
+    console.log('ricerca by id:'+movie)
+   
+    for (var i = 0; i < dataBH.length; i++){
+       if( dataBH[i].film.toLocaleUpperCase().includes(movie) ) { tmp.push(dataBH[i]) }
+    }
+    console.log(tmp);
+    
+}
 
 
 window.addEventListener('scroll', function() {
@@ -356,26 +511,9 @@ window.addEventListener('scroll', function() {
     maxThumb=maxThumb+qnt;//100
     for (var i = maxThumbBefore; i < maxThumb; i++){
         
-        createMovieThumb(dataBH[i].film,dataBH[i].linkHost,dataBH[i].poster_path,dataBH[i].overview,dataBH[i].genre_ids, dataBH[i].id, dataBH[i].release_date)
+        createMovieThumb(dataBH[i].film,dataBH[i].linkHost,dataBH[i].poster_path,dataBH[i].overview,dataBH[i].genre_ids, dataBH[i].id, dataBH[i].release_date, dataBH[i].cast)
 
     }
   }
 
-
-
-/* object movie
-
-  film:"Sausage Party - Vita segreta di una salsiccia"
-genre_ids: (4) ['Avventura', 'Animazione', 'Commedia', 'Fantasia']
-id:223702
-linkHost: "https://vixcloud.co/embed/37931?token=cb470f6ea74cef8fb27201638479ad0e&title=Sausage+Party+-+Vita+segreta+di+una+salsiccia&referer=1&expires=1708968114"
-linkWeb: "https://streamingcommunity.cz/iframe/268"
-original_title
-: "Sausage Party"
-overview: "Frank, una salsiccia innamorata del panino Brenda, è convinto che dopo essere stato acquistato dallo scaffale del supermercato in cui è in bella mostra lo attenda un futuro paradisiaco. Scoprirà che la realtà è ben diversa, imbarcandosi in una missione per scoprire cosa lo attende effettivamente."
-popularity: 47.319
-poster_path: "https://image.tmdb.org/t/p/w200/9OxYTjICTAXspQXI3pAqFAGEmLN.jpg"
-
-https://www.youtube.com/results?search_query=trailer+kung+fu+panda+4
-
-*/
+   
