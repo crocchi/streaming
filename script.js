@@ -29,13 +29,13 @@ const createMovie =(nameMovie,url)=>{
 
     if (createThumb >= maxThumb){ return }
     createThumb++
-    let div=`<div id='${id}' class='postcard'><img src='${posterUrl}' alt='Movie Poster'></img>`;
+    let div=`<div class='postcard'><img src='${posterUrl}' alt='Movie Poster'></img>`;
     let serieTvHtml= type==='tv' ? `<a class="seriefilm">SerieTv</a>` : ``;
     let postCard=`${serieTvHtml}<div class='postcard-content'><div class='title'>${nameMovie}</div><div class='description'>${movieOverview}</div>`;
     let trailerHtml=trailer ? `<a href="${trailer}" target="new_blank" class="trailer">Trailer</a>` : ``; 
     let genere=`${trailerHtml}<div style='overflow-x:clip;' class='genre'>${genre.join(',')}</div> <div style='font-size:x-small;color:burlywood'>Cast:${cast.join(',')}</div> <div class='genre'>${year}</div>`
     //let functionTVSHOW=
-    let button=`<a onclick="showMeMovie('${url}')" href='#' class='button'>Guarda ora</a></div></div>`
+    let button=`<a id='${id}' onclick="showMeMovie('${url}')" href='#' class='button'>Guarda ora</a></div></div>`
     //create el p con nome film
     //let element = document.createElement('div');
     //element.innerHTML=div+postCard+button;
@@ -43,13 +43,12 @@ const createMovie =(nameMovie,url)=>{
     //let elTmp=document.getElementById('myspace')
     document.querySelector("body").innerHTML+=div+postCard+genere+button;
    
-    //timer attesa per nn intalliare la pagina con troppe richieste
-    //let timerAttesa= await setTimeout(console.log(), 300);
+    //await sleep(200)x dare al tempo al dom di caricarsi..
   }
 
   //INIZIALIZZA LA PAGINA
-  let filmInfo="<button onclick='searchMovieLocal()'>SEARCH: </button><textarea oninput='searchMovie(this.value)' id='textArea'rows='1' cols='25'></textarea><p id='infoFilm'> Film:</p>";
-  document.write("<div style='display:grid;' id='myspace'></div><iframe id='frame' sandbox='allow-scripts' allowfullscreen></iframe><button onclick='nextShow()'>NEXT EP</button><div class='barra'>Scan Movie: <button onclick='timer(false)'>STOP</button><button onclick='timer(true)'>START</button>"+filmInfo+"</div>");
+  let filmInfo="<button onclick='searchMovieLocal()'>SEARCH: </button><textarea oninput='searchMovie(this.value)' id='textArea'rows='1' placeholder='Act:Will Smith.. @serietv' cols='25'></textarea><p id='infoFilm'> Film:</p>";
+  document.write("<div style='display:grid;' id='myspace'></div><iframe id='frame' sandbox='allow-scripts' allowfullscreen></iframe><button onclick='nextShow()'>NEXT EP</button><div class='barra'>Scan Movie: <button style='display:none' id='btnStop'>STOP</button><button id='btnStart'>START</button>"+filmInfo+"</div>");
 
   let cont=1;
   let createThumb=0;
@@ -82,13 +81,39 @@ if(localStorage['CONT']){
 }else{ localStorage.setItem(`CONT`, cont);}
   
 
-let timerInterval = setInterval(updateTimer, 10000);
+let timerInterval; //= setInterval(updateTimer, 10000);
 
-const timer =(onnoff,timer=7000)=>{//true ,false
+const timer =(onnoff,timer=10000)=>{//true ,false
     
-    if(onnoff){timerInterval = setInterval(updateTimer, timer);} else{ clearInterval(updateTimer, timer); clearInterval(timerInterval)}
-    
+    if(onnoff){
+        timerInterval = setInterval(updateTimer, 10000);
+        btnStart.style='display:none';
+        btnStop.style='';
+        loggerStatus('Scansione Avviata...')
+      } else{
+         clearInterval(updateTimer, timer);
+         clearInterval(timerInterval);
+         btnStop.style='display:none';
+         btnStart.style='';
+         loggerStatus('Scansione Fermata...')
+        }
+      
 }
+
+
+const initPage = () => {
+    var btnStart=document.getElementById('btnStart');
+    var btnStop=document.getElementById('btnStop');
+
+    btnStart.addEventListener('click', function(url){
+      timer(true)
+    })
+
+    btnStop.addEventListener('click', function(url){
+    timer(false)
+    })
+
+  }
 
 function updateTimer() {
     
@@ -505,12 +530,30 @@ const searchMovie=(movie)=>{
 
 //cerca movie nell array dataBH
 const searchMovieLocal=(movie)=>{
+    //debugger
     let tmp=[]
     let textSearchArea=document.querySelector("#textArea").value ;
+  
+
+    movie=textSearchArea.toLocaleUpperCase();
+    //ricerca by actors
+    if(movie.includes("ACT:")){
+       let actor= movie.replace("ACT:", "");
+       searchMovieLocalByActor(actor);
+       return
+    }
+
+     //ricerca by actors
+     if(movie.includes("@SERIETV")){ //serie:
+        //let actor= movie.replace("ACTORS:", "");
+        searchMovieLocalByType('TV');
+        return
+     }
 
     console.log('ricerca...'+textSearchArea)
-    movie=textSearchArea.toLocaleUpperCase();
-    if(movie.length < 3){ return undefined  }
+
+   
+      if(movie.length < 3){ return undefined  }
     for (var i = maxThumb; i < dataBH.length; i++){
        if( dataBH[i].film.toLocaleUpperCase().includes(movie) ) { tmp.push(dataBH[i]) }
     }
@@ -520,6 +563,40 @@ const searchMovieLocal=(movie)=>{
         //console.log(index)
         createMovieThumb(el.film,el.linkHost,el.poster_path,el.overview,el.genre_ids ,el.id ,el.release_date, el.cast, el.type, el.trailer)
     } )
+}
+
+const searchMovieLocalByActor=(actor)=>{
+    //debugger
+    let tmp=[]
+//    let actors= actor.toLocaleUpperCase();
+    for (var i = maxThumb; i < dataBH.length; i++){
+        for (var z = 0; z < dataBH[i].cast.length; z++){
+        if(dataBH[i].cast[z].toLocaleUpperCase().includes(actor)){ tmp.push(dataBH[i]); continue}
+    }
+        }
+
+     maxThumb=maxThumb + tmp.length;
+     tmp.forEach( (el)=>{ 
+        
+         createMovieThumb(el.film,el.linkHost,el.poster_path,el.overview,el.genre_ids ,el.id ,el.release_date, el.cast, el.type, el.trailer)
+     } )
+    
+}
+
+const searchMovieLocalByType=(type)=>{
+    //debugger
+    let tmp=[]
+//    let actors= actor.toLocaleUpperCase();
+    for (var i = maxThumb; i < dataBH.length; i++){       
+            if(dataBH[i].type.toLocaleUpperCase().includes(type)){ tmp.push(dataBH[i]); continue}
+        }
+    
+     maxThumb=maxThumb + tmp.length;
+     tmp.forEach(async (el)=>{ 
+        await sleep(400);
+         createMovieThumb(el.film,el.linkHost,el.poster_path,el.overview,el.genre_ids ,el.id ,el.release_date, el.cast, el.type, el.trailer)
+     } )
+    
 }
 
 const searchMovieLocalById=(id)=>{
@@ -579,18 +656,25 @@ window.addEventListener('scroll', function() {
 const getLinkTvShow=async (iframeID)=>{
 
     let urlCast=`https://streamingcommunity.cz/watch/${iframeID-1}`;
-//debugger
+    
     let iframe=document.createElement('iframe');
     iframe.src=urlCast;
+    iframe.id=`${iframeID}`;
     document.body.appendChild(iframe);
     await sleep(5000)
     
 
   
         let srcCodeE=document.querySelectorAll("iframe")[1].contentDocument.querySelector('iframe').src;
-        console.log(srcCodeE);
+        //console.log(srcCodeE);
         console.log(getParameterByName('episode_id',srcCodeE));
         iframe.remove();
+        try{ var iframe2=document.getElementById(`${iframeID}`);
+
+        var parentElement = iframe2.parentNode;
+        parentElement.removeChild(iframe2);
+        }catch (err){console.log(err)}finally{}
+       
         //let urlShorLink=
         return srcCodeE 
     
@@ -611,3 +695,5 @@ const nextShow = () => {
     let urlCast=`https://streamingcommunity.cz/iframe/${stringTmpp}?episode_id=${episodeId+1}&next_episode=1`;
     document.getElementById('frame').src=urlCast;
 }
+
+initPage();
