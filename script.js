@@ -809,84 +809,114 @@ databaseManager.openDatabase()
     console.error(error);
   });
 */
-
 class IndexDB {
-    //objTmp
-    constructor(dbName,storeName,version=1){
-        this.dbName = dbName;
-        this.storeName = storeName;
-        this.version = version;
-        this.db = null;
+    constructor(dbName, storeName, version = 1) {
+      this.dbName = dbName;
+      this.storeName = storeName;
+      this.version = version;
+      this.db = null;
     }
-
+  
     openDatabase() {
-        return new Promise((resolve, reject) => {
-          const request = indexedDB.open(this.dbName, this.version);
-    
-          request.onsuccess = (event) => {
-            this.db = event.target.result;
-            resolve(this.db);
-          };
-    
-          request.onerror = (event) => {
-            reject(`Errore nell'apertura del database: ${event.target.error}`);
-          };
-    
-          request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-    
-            if (!db.objectStoreNames.contains(this.storeName)) {
-              db.createObjectStore(this.storeName, { keyPath: "id" });
-            }
-          };
-        });
-      }
-
-    insertData(data) {
-        return new Promise((resolve, reject) => {
-          if (!this.db) {
-            reject("Database non aperto. Chiamare openDatabase() prima di inserire i dati.");
-            return;
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(this.dbName, this.version);
+  
+        request.onsuccess = (event) => {
+          this.db = event.target.result;
+          resolve(this.db);
+        };
+  
+        request.onerror = (event) => {
+          reject(`Errore nell'apertura del database: ${event.target.error}`);
+        };
+  
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+  
+          if (!db.objectStoreNames.contains(this.storeName)) {
+            db.createObjectStore(this.storeName, { keyPath: "id" });
           }
-    
-          const transaction = this.db.transaction([this.storeName], "readwrite");
-          const objectStore = transaction.objectStore(this.storeName);
-    
-          const addRequest = objectStore.add(data);
-    
-          addRequest.onsuccess = (event) => {
-            resolve("Dati aggiunti con successo");
-          };
-    
-          addRequest.onerror = (event) => {
-            reject(`Errore nell'aggiunta dei dati: ${event.target.error}`);
-          };
-        });
-      
+        };
+      });
+    }
+  
+    insertDataArray(dataArray) {
+      return new Promise((resolve, reject) => {
+        if (!this.db) {
+          reject("Database non aperto. Chiamare openDatabase() prima di inserire i dati.");
+          return;
+        }
+  
+        const transaction = this.db.transaction([this.storeName], "readwrite");
+        const objectStore = transaction.objectStore(this.storeName);
+  
+        transaction.oncomplete = () => {
+          resolve("Inserimento dati completato con successo");
+        };
+  
+        transaction.onerror = (event) => {
+          reject(`Errore nell'operazione di transazione: ${event.target.error}`);
+        };
+  
+        for (const data of dataArray) {
+            console.log(data.id)
+      /*  let keyEsist= this.isKeyThere(data.id);
+        if (keyEsist) {
+            console.warn(`Chiave già presente nel database: ${data.id}. L'inserimento non è avvenuto.`);
+            return "Chiave già presente nel database. L'inserimento non è avvenuto.";
+          }*/
+          objectStore.add(data);
+        }
+      });
+    }
+  
+    async refillIndexDB(dataArray) {
+      try {
+        await this.openDatabase(); // Assicurati che il database sia aperto prima di inserire i dati
+        await this.insertDataArray(dataArray); // Inserisci i dati multipli in un'unica transazione
+        console.log('Inserimento dati da localStorage in IndexedDB completato!');
+      } catch (error) {
+        console.error(error);
+      }
     }
 
-      async refillIndexDB (dataArray){
-        try {
-            await this.openDatabase(); // Assicurati che il database sia aperto prima di inserire i dati
-            const transaction = this.db.transaction([this.storeName], "readwrite");
-            const objectStore = transaction.objectStore(this.storeName);
-            
-            for (const data of dataArray) {
-              await this.insertData(data);
-            }
-            console.log('Inserimento dati da localStorage in IndexedDB completato!');
-          } catch (error) {
-            console.error(error);
-          }
-        }
-}
-const multipleData = [
+    async isKeyThere(key){
+
+        const transaction = this.db.transaction([this.storeName], "readonly");
+      const objectStore = transaction.objectStore(this.storeName);
+
+      const getRequest = objectStore.get(key);
+
+      return new Promise((resolve, reject) => {
+        getRequest.onsuccess = () => {
+          resolve(getRequest.result !== undefined);
+        };
+
+        getRequest.onerror = (event) => {
+          reject(`Errore nel recupero della chiave: ${event.target.error}`);
+        };
+      });
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+    
+
+
+
+  }
+  
+  // Utilizzo della classe
+  const multipleData = [
     { id: 1, name: "Prodotto A", price: 19.99 },
     { id: 2, name: "Prodotto B", price: 29.99 },
     { id: 3, name: "Prodotto C", price: 39.99 }
   ];
-
-const databaseManager = new IndexDB("CroFlix", "FIlm&Serie");
+  
+const databaseManager = new IndexDB("CroFlix", "Film&Serie");
+  
+//databaseManager.refillIndexDB(multipleData);
+  
 
 /*
     databaseManager.openDatabase()
@@ -899,6 +929,81 @@ const databaseManager = new IndexDB("CroFlix", "FIlm&Serie");
 
 */
 
+
+
+class IndexDBdue {
+    constructor(dbName, storeName, version = 1) {
+      this.dbName = dbName;
+      this.storeName = storeName;
+      this.version = version;
+      this.db = null;
+    }
+  
+    openDatabase() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(this.dbName, this.version);
+  
+        request.onsuccess = (event) => {
+          this.db = event.target.result;
+          resolve(this.db);
+        };
+  
+        request.onerror = (event) => {
+          reject(`Errore nell'apertura del database: ${event.target.error}`);
+        };
+  
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+  
+          if (!db.objectStoreNames.contains(this.storeName)) {
+            db.createObjectStore(this.storeName, { keyPath: "id" });
+          }
+        };
+      });
+    }
+  
+    insertDataArray(dataArray) {
+      return new Promise((resolve, reject) => {
+        if (!this.db) {
+          reject("Database non aperto. Chiamare openDatabase() prima di inserire i dati.");
+          return;
+        }
+  
+        const transaction = this.db.transaction([this.storeName], "readwrite");
+        const objectStore = transaction.objectStore(this.storeName);
+  
+        transaction.oncomplete = () => {
+          resolve("Inserimento dati completato con successo");
+        };
+  
+        transaction.onerror = (event) => {
+          reject(`Errore nell'operazione di transazione: ${event.target.error}`);
+        };
+  
+        for (const data of dataArray) {
+          objectStore.add(data);
+        }
+      });
+    }
+  
+    async refillIndexDB(dataArray) {
+      try {
+        await this.openDatabase(); // Assicurati che il database sia aperto prima di inserire i dati
+        await this.insertDataArray(dataArray); // Inserisci i dati multipli in un'unica transazione
+        console.log('Inserimento dati da localStorage in IndexedDB completato!');
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  }
+  
+  // Utilizzo della classe
+
+  
+//  const databaseManager = new IndexDB("CroFlix", "Film&Serie");
+  
+  //databaseManager.refillIndexDB(multipleData);
+  
 
 class Scrappy {
     response
