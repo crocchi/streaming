@@ -880,27 +880,65 @@ class IndexDB {
       }
     }
 
-    async isKeyThere(key){
-
-        const transaction = this.db.transaction([this.storeName], "readonly");
-      const objectStore = transaction.objectStore(this.storeName);
-
-      const getRequest = objectStore.get(key);
-
-      return new Promise((resolve, reject) => {
-        getRequest.onsuccess = () => {
-          resolve(getRequest.result !== undefined);
-        };
-
-        getRequest.onerror = (event) => {
-          reject(`Errore nel recupero della chiave: ${event.target.error}`);
-        };
-      });
-    } catch (error) {
-      console.error(error);
-      return false;
-    }
+    async isKeyExists(key) {
+        try {
+          if (!this.db) {
+            throw new Error("Database non aperto. Chiamare openDatabase() prima di verificare la chiave.");
+          }
     
+          const transaction = this.db.transaction([this.storeName], "readonly");
+          const objectStore = transaction.objectStore(this.storeName);
+    
+          const getRequest = objectStore.get(key);
+    
+          return new Promise((resolve, reject) => {
+            getRequest.onsuccess = () => {
+              resolve(getRequest.result !== undefined);
+            };
+    
+            getRequest.onerror = (event) => {
+              reject(`Errore nel recupero della chiave: ${event.target.error}`);
+            };
+          });
+        } catch (error) {
+          console.error(error);
+          return false;
+        }
+      }
+
+
+      async insertData(data) {
+        try {
+          if (!this.db) {
+            throw new Error("Database non aperto. Chiamare openDatabase() prima di inserire i dati.");
+          }
+    
+          const transaction = this.db.transaction([this.storeName], "readwrite");
+          const objectStore = transaction.objectStore(this.storeName);
+    
+          const keyExists = await this.isKeyExists(data.id);
+    
+          if (keyExists) {
+            console.warn(`Chiave già presente nel database: ${data.id}. L'inserimento non è avvenuto.`);
+            return "Chiave già presente nel database. L'inserimento non è avvenuto.";
+          }
+    
+          const addRequest = objectStore.add(data);
+    
+          return new Promise((resolve, reject) => {
+            addRequest.onsuccess = () => {
+              resolve("Dati aggiunti con successo");
+            };
+    
+            addRequest.onerror = (event) => {
+              reject(`Errore nell'aggiunta dei dati: ${event.target.error}`);
+            };
+          });
+        } catch (error) {
+          console.error(error);
+          return "Errore durante l'inserimento dei dati.";
+        }
+      }    
 
 
 
@@ -919,87 +957,24 @@ const databaseManager = new IndexDB("CroFlix", "Film&Serie");
   
 
 /*
-    databaseManager.openDatabase()
-    .then(() => {
-        return databaseManager.refillIndexDB(multipleData);
-    })
-    .catch( (err)=>{
-        console.log(err);
-    } )
+   // Utilizzo della classe
+const databaseManager = new IndexDB("CroFlix", "Film&Serie");
 
+const newData = { id: 4, name: "Prodotto D", price: 49.99 };
+
+databaseManager.openDatabase()
+  .then(() => {
+    return databaseManager.insertData(newData);
+  })
+  .then((result) => {
+    console.log(result);
+  })
+  .catch((error) => {
+    console.error(error);
+  });
 */
 
 
-
-class IndexDBdue {
-    constructor(dbName, storeName, version = 1) {
-      this.dbName = dbName;
-      this.storeName = storeName;
-      this.version = version;
-      this.db = null;
-    }
-  
-    openDatabase() {
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open(this.dbName, this.version);
-  
-        request.onsuccess = (event) => {
-          this.db = event.target.result;
-          resolve(this.db);
-        };
-  
-        request.onerror = (event) => {
-          reject(`Errore nell'apertura del database: ${event.target.error}`);
-        };
-  
-        request.onupgradeneeded = (event) => {
-          const db = event.target.result;
-  
-          if (!db.objectStoreNames.contains(this.storeName)) {
-            db.createObjectStore(this.storeName, { keyPath: "id" });
-          }
-        };
-      });
-    }
-  
-    insertDataArray(dataArray) {
-      return new Promise((resolve, reject) => {
-        if (!this.db) {
-          reject("Database non aperto. Chiamare openDatabase() prima di inserire i dati.");
-          return;
-        }
-  
-        const transaction = this.db.transaction([this.storeName], "readwrite");
-        const objectStore = transaction.objectStore(this.storeName);
-  
-        transaction.oncomplete = () => {
-          resolve("Inserimento dati completato con successo");
-        };
-  
-        transaction.onerror = (event) => {
-          reject(`Errore nell'operazione di transazione: ${event.target.error}`);
-        };
-  
-        for (const data of dataArray) {
-          objectStore.add(data);
-        }
-      });
-    }
-  
-    async refillIndexDB(dataArray) {
-      try {
-        await this.openDatabase(); // Assicurati che il database sia aperto prima di inserire i dati
-        await this.insertDataArray(dataArray); // Inserisci i dati multipli in un'unica transazione
-        console.log('Inserimento dati da localStorage in IndexedDB completato!');
-      } catch (error) {
-        console.error(error);
-      }
-    }
-  }
-  
-  // Utilizzo della classe
-
-  
 //  const databaseManager = new IndexDB("CroFlix", "Film&Serie");
   
   //databaseManager.refillIndexDB(multipleData);
