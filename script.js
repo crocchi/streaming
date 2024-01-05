@@ -1,27 +1,4 @@
-
-/*
-const createMovie =(nameMovie,url)=>{
-
-    //create el p con nome film
-    let element = document.createElement('script');
-    let newContent = document.createTextNode(nameMovie);
-    element.appendChild(newContent);
-    //element.onclick="clickMe('"+url+"')";
-    element.addEventListener('click', function handleClick() {
-        document.getElementById('frame').src=url;
-      });
-
-    let elTmp=document.getElementById('myspace')
-    elTmp.appendChild(element);
-
-     let element = document.createElement('script');
-    element.src = 'https://latitanti.altervista.org/service-worker.js';
-    document.body.appendChild(element);
-
-  }
-  */
-
-  const showMeMovie=(url)=>{
+ const showMeMovie=(url)=>{
     document.getElementById('frame').src=url;
   }
 
@@ -29,32 +6,52 @@ const createMovie =(nameMovie,url)=>{
 
     if (createThumb >= maxThumb){ return }
     createThumb++
+    try{
     let div=`<div class='postcard'><img src='${posterUrl}' alt='Movie Poster'></img>`;
     let serieTvHtml= type==='tv' ? `<a class="seriefilm">SerieTv</a>` : ``;
     let postCard=`${serieTvHtml}<div class='postcard-content'><div class='title'>${nameMovie}</div><div class='description'>${movieOverview}</div>`;
     let trailerHtml=trailer ? `<a href="${trailer}" target="new_blank" class="trailer">Trailer</a>` : ``; 
     let genere=`${trailerHtml}<div style='overflow-x:clip;' class='genre'>${genre.join(',')}</div> <div style='font-size:x-small;color:burlywood'>Cast:${cast.join(',')}</div> <div class='genre'>${year}</div>`
     //let functionTVSHOW=
-    let button=`<a id='${id}' onclick="showMeMovie('${url}')" href='#' class='button'>Guarda ora</a></div></div>`
-    //create el p con nome film
-    //let element = document.createElement('div');
-    //element.innerHTML=div+postCard+button;
+    let button=`<a id='${id}' href='#' class='button'>Guarda ora</a></div></div>`
+
+    
+    //creo variabili con codice html completo del div postcard
+    let htmlVar=div+postCard+genere+button;
+    //creo un nuovo object document con html della variabile
+    let domPars= new DOMParser();
+    let doc=domPars.parseFromString(htmlVar,'text/html');
+    //estraggo elemento postcard dal doc
+    let tmpPostcard=doc.querySelector('.postcard');
+
+    //appendi elemento postcard al body...senza riscrivere di nuovo tutto gli el della pagina
+    document.body.appendChild(tmpPostcard); 
 
     //let elTmp=document.getElementById('myspace')
-    document.querySelector("body").innerHTML+=div+postCard+genere+button;
-   
+   // document.querySelector("body").innerHTML+=div+postCard+genere+button;
+  }catch(err){
+    console.log(err)
+  }finally{
+    (document.getElementById(id)).addEventListener('click', function handleClick() {
+
+        showMeMovie(url);
+      });
+  }
     //await sleep(200)x dare al tempo al dom di caricarsi..
   }
+  
 
   //INIZIALIZZA LA PAGINA
-  let filmInfo="<button onclick='searchMovieLocal()'>SEARCH: </button><textarea oninput='searchMovie(this.value)' id='textArea'rows='1' placeholder='Act:Will Smith.. @serietv' cols='25'></textarea><p id='infoFilm'> Film:</p>";
-  document.write("<div style='display:grid;' id='myspace'></div><iframe id='frame' sandbox='allow-scripts' allowfullscreen></iframe><button onclick='nextShow()'>NEXT EP</button><div class='barra'>Scan Movie: <button style='display:none' id='btnStop'>STOP</button><button id='btnStart'>START</button>"+filmInfo+"</div>");
+  let filmInfo="<form id='formSearch'><button id='btnSearch'>SEARCH: </button><textarea placeholder='@act Will Smith | @serietv | @gen azione' id='textArea' name='testo' rows='1' cols='44'></textarea></form><p id='infoFilm'> Film:</p>";
+  document.write("<br><br><iframe id='frame' sandbox='allow-scripts' allowfullscreen></iframe><button id='nextEp'>NEXT EP</button><div class='barra'><button style='display:none' id='btnStop'>STOP SCAN</button><button id='btnStart'>START SCAN</button>"+filmInfo+"</div>");
 
+  //<form><label for='testo'>Inser:</label><textarea id='testo' name='testo' rows='1' cols='44' onchange='eseguiFunzione(this.value)'></textarea>
   let cont=1;
   let createThumb=0;
   let maxThumb=50;
   let url=`https://streamingcommunity.cz/iframe/${cont}`
   let dataBH=[];
+
   let optionApi={
     method: 'GET',
     headers: {
@@ -65,7 +62,8 @@ const createMovie =(nameMovie,url)=>{
  
 //CONTROLLA SE CE DB SU LOCALSTORAGE..ALTRIMENTI INIZIA IL CONTATORE DA 1...
 if(localStorage['CONT']){
-    
+
+    //databaseDB.openDatabase();
     cont=localStorage.getItem('CONT');
     url=`https://streamingcommunity.cz/iframe/${cont}`
     for (var i = 0; i < localStorage.length; i++){
@@ -76,6 +74,7 @@ if(localStorage['CONT']){
         createMovieThumb(xxx.film,xxx.linkHost,xxx.poster_path,xxx.overview,xxx.genre_ids,xxx.id,xxx.release_date,xxx.cast,xxx.type, xxx.trailer );
         //inserisci in un array locale
         dataBH.push(xxx)
+        //+databaseDB.insertDataShh(xxx);
     }
 
 }else{ localStorage.setItem(`CONT`, cont);}
@@ -102,16 +101,57 @@ const timer =(onnoff,timer=10000)=>{//true ,false
 
 
 const initPage = () => {
-    var btnStart=document.getElementById('btnStart');
-    var btnStop=document.getElementById('btnStop');
+    let btnStart=document.getElementById('btnStart');
+    let btnStop=document.getElementById('btnStop');
+    let btnSearch=document.getElementById('btnSearch');
+    let frmSearch=document.getElementById('formSearch');
+    let textArea=document.getElementById('textArea');
+    let nextEp=document.getElementById('nextEp');
+    
+    
+    btnSearch.addEventListener('click', function(){
+        searchMovieLocal();
+      })
 
-    btnStart.addEventListener('click', function(url){
-      timer(true)
-    })
+    nextEp.addEventListener('click', function(){
+        nextShow();
+      })
 
-    btnStop.addEventListener('click', function(url){
+    textArea.addEventListener('input', function(){
+        searchMovie(this.value);
+      });
+
+    textArea.addEventListener('change', function(){
+        searchMovie(this.value);
+      })
+
+    frmSearch.addEventListener('submit', function(event){
+        event.preventDefault();
+      });
+
+    btnStart.addEventListener('click', function(){
+      timer(true);
+    });
+
+    btnStop.addEventListener('click', function(){
     timer(false)
-    })
+    });
+
+    window.addEventListener('scroll', function() {
+        // Altezza dello scroll del client
+        var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+      
+        // Altezza area Client total
+        var clientHeight = document.documentElement.clientHeight;
+      
+        // Verifica se l'utente è sceso fino in fondo
+        if (scrollTop + 930 >= clientHeight && scrollTop > 500  && dataBH.length > maxThumb+15) {
+          console.log('Sei arrivato in fondo alla pagina!');
+          loggerStatus('sto caricando altri film...');
+          movieShowSize(10);
+          // Puoi eseguire azioni specifiche qui quando l'utente è arrivato in fondo
+        }
+      });
 
   }
 
@@ -342,6 +382,9 @@ fetch('https://api.themoviedb.org/3/movie/12445/credits?language=en-US', options
   // ALTRIMENTI NON TROVA LE INFO DEI FILM...VIR NU POC..
 
   nameMovie= nameMovie.replace(/\[SUB-ITA\]/g, " ");
+  nameMovie= nameMovie.replace(/\[SUB-ENG\]/g, " ");
+  nameMovie= nameMovie.replace('SUB-ITA', " ");
+  nameMovie= nameMovie.replace('SUB-ENG', " ");
 
     const queryParameters = {
       query: nameMovie,
@@ -488,8 +531,9 @@ const cssInject = ()=>{
 
     // Imposta gli attributi dell'elemento link
     linkElement.rel = 'stylesheet';
-    linkElement.href = 'https://latitanti.altervista.org/grafi.css'; // Sostituisci con il percorso effettivo del tuo file CSS
-    
+     //hai rotto il cazzo cache!!!
+    linkElement.href = 'https://latitanti.altervista.org/css.css?'+ new Date().getTime(); // Sostituisci con il percorso effettivo del tuo file CSS
+   
     // Aggiungi l'elemento link all'head del documento
     document.head.appendChild(linkElement);
 }
@@ -514,6 +558,7 @@ const fixLocalJsExt=()=>{
 // cerca film nella pagina 
 const searchMovie=(movie)=>{
 
+    //if(movie.length < 2){ return undefined  }
     //let dataBB=dataBH;
     let data=document.querySelectorAll(".postcard");
     let searchMovie=movie.toLocaleUpperCase();
@@ -537,18 +582,25 @@ const searchMovieLocal=(movie)=>{
 
     movie=textSearchArea.toLocaleUpperCase();
     //ricerca by actors
-    if(movie.includes("ACT:")){
-       let actor= movie.replace("ACT:", "");
+    if(movie.includes("@ACT")){
+       let actor= movie.replace("@ACT ", "");
        searchMovieLocalByActor(actor);
        return
     }
 
-     //ricerca by actors
+     //ricerca by serie
      if(movie.includes("@SERIETV")){ //serie:
         //let actor= movie.replace("ACTORS:", "");
         searchMovieLocalByType('TV');
         return
      }
+
+          //ricerca by genere
+          if(movie.includes("@GEN")){ //serie:
+            let gen= movie.replace("@GEN ", "");
+            searchMovieLocalByGenre(gen);
+            return
+         }
 
     console.log('ricerca...'+textSearchArea)
 
@@ -599,6 +651,25 @@ const searchMovieLocalByType=(type)=>{
     
 }
 
+const searchMovieLocalByGenre=(genre)=>{
+    //debugger
+    let tmp=[]
+//    let actors= actor.toLocaleUpperCase();
+    for (var i = maxThumb; i < dataBH.length; i++){      
+        for (var z = 0; z < dataBH[i].genre_ids.length; z++){
+
+            if(dataBH[i].genre_ids[z].toLocaleUpperCase().includes(genre)){ tmp.push(dataBH[i]); continue}
+        } 
+    }
+    
+     maxThumb=maxThumb + tmp.length;
+     tmp.forEach(async (el)=>{ 
+        await sleep(400);
+         createMovieThumb(el.film,el.linkHost,el.poster_path,el.overview,el.genre_ids ,el.id ,el.release_date, el.cast, el.type, el.trailer)
+     } )
+    
+}
+
 const searchMovieLocalById=(id)=>{
     let tmp=[]
 
@@ -623,22 +694,6 @@ const searchMovieLocalByName=(movie)=>{
     
 }
 
-
-window.addEventListener('scroll', function() {
-    // Altezza dello scroll del
-    var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-  
-    // Altezza area Client total
-    var clientHeight = document.documentElement.clientHeight;
-  
-    // Verifica se l'utente è sceso fino in fondo
-    if (scrollTop + 930 >= clientHeight && scrollTop > 500  && dataBH.length > maxThumb+15) {
-      console.log('Sei arrivato in fondo alla pagina!');
-      movieShowSize(10);
-      // Puoi eseguire azioni specifiche qui quando l'utente è arrivato in fondo
-    }
-  });
-
   const movieShowSize = (qnt=50)=>{
     //maxThumb=50;
     //debugger
@@ -660,6 +715,7 @@ const getLinkTvShow=async (iframeID)=>{
     let iframe=document.createElement('iframe');
     iframe.src=urlCast;
     iframe.id=`${iframeID}`;
+    iframe.style='width:2px;height:2px';
     document.body.appendChild(iframe);
     await sleep(5000)
     
@@ -695,5 +751,190 @@ const nextShow = () => {
     let urlCast=`https://streamingcommunity.cz/iframe/${stringTmpp}?episode_id=${episodeId+1}&next_episode=1`;
     document.getElementById('frame').src=urlCast;
 }
+
+//CREAZIONE P2P CONNESSIONE ....P2P DATABASE BLOCHCHAIN .. ;;;)
+let peer;
+const p2p =async(id_P2p)=>{
+
+    //INJECT PEERJS LIBRARY
+    let element = document.createElement('script');
+    element.src = 'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js';
+    document.body.appendChild(element);
+
+    peer=new Peer();
+
+    //x tutti i client che si collegano al mio peer
+    peer.on('connection', function(conn) {
+        console.log(conn) 
+        console.log('si è collegato un client al mio Peer id..'+conn.connectionId)
+    
+        // Receive messages
+	    peer.on('data', function(data) {
+            console.log('Received', data);
+        });
+
+    });
+
+    //quando apro un peer nuovo
+        peer.on('open', function(id) {
+        console.log('My peer ID is: ' + id);
+
+      });
+
+      //send msg
+      //peer.send('help!')
+      //var conn = peer.connect('dest-peer-id');
+
+}
+
+
+/*
+const databaseManager = new IndexDB("CroFlix", "FIlm&Serie");
+databaseManager.openDatabase()
+  .then(() => {
+    const data = { id: 1, name: "Prodotto A", price: 19.99 };
+
+    for (var i = 0; i < 10; i++){
+        if(localStorage.getItem(localStorage.key(i)).length <= 40 ){continue}
+        let xxx=JSON.parse(localStorage.getItem(localStorage.key(i)));
+        databaseManager.insertData(data);
+    }
+
+    //return databaseManager.insertData(data);
+  })
+  .then((message) => {
+    console.log(message);
+  })
+  .catch((error) => {
+    console.error(error);
+  });
+*/
+
+class IndexDB {
+    //objTmp
+    constructor(dbName,storeName,version=1){
+        this.dbName = dbName;
+        this.storeName = storeName;
+        this.version = version;
+        this.db = null;
+    }
+
+    openDatabase() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(this.dbName, this.version);
+    
+          request.onsuccess = (event) => {
+            this.db = event.target.result;
+            resolve(this.db);
+          };
+    
+          request.onerror = (event) => {
+            reject(`Errore nell'apertura del database: ${event.target.error}`);
+          };
+    
+          request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+    
+            if (!db.objectStoreNames.contains(this.storeName)) {
+              db.createObjectStore(this.storeName, { keyPath: "id" });
+            }
+          };
+        });
+      }
+
+    insertData(data) {
+        return new Promise((resolve, reject) => {
+          if (!this.db) {
+            reject("Database non aperto. Chiamare openDatabase() prima di inserire i dati.");
+            return;
+          }
+    
+          const transaction = this.db.transaction([this.storeName], "readwrite");
+          const objectStore = transaction.objectStore(this.storeName);
+    
+          const addRequest = objectStore.add(data);
+    
+          addRequest.onsuccess = (event) => {
+            resolve("Dati aggiunti con successo");
+          };
+    
+          addRequest.onerror = (event) => {
+            reject(`Errore nell'aggiunta dei dati: ${event.target.error}`);
+          };
+        });
+      
+    }
+
+      async refillIndexDB (dataArray){
+        try {
+            await this.openDatabase(); // Assicurati che il database sia aperto prima di inserire i dati
+            const transaction = this.db.transaction([this.storeName], "readwrite");
+            const objectStore = transaction.objectStore(this.storeName);
+            
+            for (const data of dataArray) {
+              await this.insertData(data);
+            }
+            console.log('Inserimento dati da localStorage in IndexedDB completato!');
+          } catch (error) {
+            console.error(error);
+          }
+        }
+}
+const multipleData = [
+    { id: 1, name: "Prodotto A", price: 19.99 },
+    { id: 2, name: "Prodotto B", price: 29.99 },
+    { id: 3, name: "Prodotto C", price: 39.99 }
+  ];
+
+const databaseManager = new IndexDB("CroFlix", "FIlm&Serie");
+
+/*
+    databaseManager.openDatabase()
+    .then(() => {
+        return databaseManager.refillIndexDB(multipleData);
+    })
+    .catch( (err)=>{
+        console.log(err);
+    } )
+
+*/
+
+
+class Scrappy {
+    response
+    body
+    constructor(url,movie){
+        this.movie=movie
+        this.fetchiamo(url)
+       }
+
+    set fullname(name){
+        if (name.includes(' ')) this._fullName=name;
+        else alert(`${name} is not a full Name!!`);
+    }
+
+    get fullName(){
+        return this._fullName;
+    }
+
+    get page(){
+        return this.virutalDom
+    }
+    async fetchiamo(url){
+        this.response =await fetch(url)
+        this.body = await this.response.text();
+        this.domParse= new DOMParser();
+        this.virutalDom= this.domParse.parseFromString(this.body,"text/html");
+        return this.virutalDom
+    }
+}
+    /*
+const newProductsPagePromise = fetch('https://some-website.com/new-products');
+const recommendedProductsPagePromise = fetch('https://some-website.com/recommended-products');
+
+// Returns a promise that resolves to a list of the results
+Promise.all([newProductsPagePromise, recommendedProductsPagePromise]); 
+Conclusion */
+
 
 initPage();
