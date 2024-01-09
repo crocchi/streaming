@@ -1,45 +1,47 @@
  const showMeMovie=(url)=>{
+
+  let frame=document.getElementById('frame')
     document.getElementById('frame').src=url;
+/*
+    // Aggiungere un listener per l'evento di caricamento
+frame.addEventListener('load', function() {
+  console.log('Il frame è stato caricato correttamente!');
+  // Puoi eseguire ulteriori azioni qui se necessario
+});
+
+// Aggiungere un listener per l'evento di errore (nel caso il caricamento fallisca)
+frame.addEventListener('error', function(error) {
+  console.error('Errore durante il caricamento del frame:', error);
+  // Puoi gestire l'errore qui se necessario
+});
+*/
   }
 
-  const createMovieThumb = async (nameMovie,url,posterUrl,movieOverview,genre,id,year='',cast=[],type='movie',trailer=false)=>{
+const checkMeMovie=(url)=>{
 
-    if (createThumb >= maxThumb){ return }
-    createThumb++
-    try{
-    let div=`<div class='postcard'><img src='${posterUrl}' alt='Movie Poster'></img>`;
-    let serieTvHtml= type==='tv' ? `<a class="seriefilm">SerieTv</a>` : ``;
-    let postCard=`${serieTvHtml}<div class='postcard-content'><div class='title'>${nameMovie}</div><div class='description'>${movieOverview}</div>`;
-    let trailerHtml=trailer ? `<a href="${trailer}" target="new_blank" class="trailer">Trailer</a>` : ``; 
-    let genere=`${trailerHtml}<div style='overflow-x:clip;' class='genre'>${genre.join(',')}</div> <div style='font-size:x-small;color:burlywood'>Cast:${cast.join(',')}</div> <div class='genre'>${year}</div>`
-    //let functionTVSHOW=
-    let button=`<a id='${id}' href='#' class='button'>Guarda ora</a></div></div>`
+    let frame = document.createElement('iframe');
+   
+      frame.src=url;
 
-    
-    //creo variabili con codice html completo del div postcard
-    let htmlVar=div+postCard+genere+button;
-    //creo un nuovo object document con html della variabile
-    let domPars= new DOMParser();
-    let doc=domPars.parseFromString(htmlVar,'text/html');
-    //estraggo elemento postcard dal doc
-    let tmpPostcard=doc.querySelector('.postcard');
-
-    //appendi elemento postcard al body...senza riscrivere di nuovo tutto gli el della pagina
-    document.body.appendChild(tmpPostcard); 
-
-    //let elTmp=document.getElementById('myspace')
-   // document.querySelector("body").innerHTML+=div+postCard+genere+button;
-  }catch(err){
-    console.log(err)
-  }finally{
-    (document.getElementById(id)).addEventListener('click', function handleClick() {
-
-        showMeMovie(url);
-      });
-  }
-    //await sleep(200)x dare al tempo al dom di caricarsi..
-  }
+      frame.style='width:2px;height:2px';
+   //  await sleep(5000)
   
+      // Aggiungere un listener per l'evento di caricamento
+  frame.addEventListener('load', function(event) {
+    console.log('Il frame è stato caricato correttamente!');
+    console.log(event);
+    // Puoi eseguire ulteriori azioni qui se necessario
+  });
+  
+  // Aggiungere un listener per l'evento di errore (nel caso il caricamento fallisca)
+  frame.addEventListener('error', function(error) {
+    console.error('Errore durante il caricamento del frame:', error);
+    // Puoi gestire l'errore qui se necessario
+  });
+
+  document.body.appendChild(frame);
+    }
+
 
   //INIZIALIZZA LA PAGINA
   let filmInfo="<form id='formSearch'><button id='btnSearch'>SEARCH: </button><textarea placeholder='@act Will Smith | @serietv | @gen azione' id='textArea' name='testo' rows='1' cols='44'></textarea></form><p id='infoFilm'> Film:</p>";
@@ -51,8 +53,7 @@
   let maxThumb=50;
   let url=`https://streamingcommunity.cz/iframe/${cont}`
   let dataBH=[];
-
-  let optionApi={
+  optionApi={
     method: 'GET',
     headers: {
       'Authorization': 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiN2Q1YjkzYjk5MDZiOTA2MTI2YjlmZDJmMDMzNTk0OCIsInN1YiI6IjY1OGM4ZmYwMjIxYmE2N2ZiNmRiNGNjMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.DYgbqqt_fP4bLS0ocTljfGGGPzsG0Av3vqDyLLgddJ4',
@@ -61,6 +62,7 @@
   }
  
 //CONTROLLA SE CE DB SU LOCALSTORAGE..ALTRIMENTI INIZIA IL CONTATORE DA 1...
+/*
 if(localStorage['CONT']){
 
     //databaseDB.openDatabase();
@@ -78,7 +80,7 @@ if(localStorage['CONT']){
     }
 
 }else{ localStorage.setItem(`CONT`, cont);}
-  
+*/  
 
 let timerInterval; //= setInterval(updateTimer, 10000);
 
@@ -155,15 +157,20 @@ const initPage = () => {
 
   }
 
-function updateTimer() {
-    
+const updateTimer =async ()=> {
+  //debugger
+    cont=await dataDB.search('CONT');
+    cont=cont.id
+    url=`https://streamingcommunity.cz/iframe/${cont}`
+
     console.log(`provo con il seguente link [${url}]`);
     loggerStatus(`provo con il seguente link:[${url}] cont:[${cont}]`);
-    url=`https://streamingcommunity.cz/iframe/${cont}`
+   
     boom(url)
     
-    cont++;
-    localStorage.setItem(`CONT`, cont);
+    cont++
+    dataDB.updateData({ film: "CONT" , id:cont })
+    //localStorage.setItem(`CONT`, cont);
   }
 
 const boom =async (url)=>{
@@ -183,12 +190,12 @@ const boom =async (url)=>{
       //RICEVE UN JSON CON HTML--PARSE JSON PAGE HTML IN DOC
       let domPars= new DOMParser();
       let doc=domPars.parseFromString(data,'text/html')
-     //console.log(doc.all[7].src)
+     //console.log(doc.all[7].src) 
       let urlHack=doc.all[7].src;
 
       
       var titleValue = getParameterByName("title", urlHack);
-      let movideInfo=await getMovieInfo(titleValue);
+      let movideInfo=await getMovieInfo(titleValue,urlHack);
       //console.log(movideInfo)
 
       //funzione per trovare il link della serie tv
@@ -218,7 +225,7 @@ https://streamingcommunity.cz/iframe/5301?episode_id=33658 ...33659..33660
 
 
       console.log(`${typeShow}: [${titleValue}]`);
-      loggerStatus(`${typeShow}:[${titleValue}] TOT:[${dataBH.length}]`);
+      loggerStatus(`${typeShow}:[${titleValue}] TOT:[${dataDB.totalMovie}]`);
       //console.log(`Film originale: [${movideInfo.original_title ||='DatiNonTrovati'}]`);
       
       //SE MANCA IMG POSTER ...METTE UNA DEFAULT
@@ -289,9 +296,11 @@ https://streamingcommunity.cz/iframe/5301?episode_id=33658 ...33659..33660
       }
       dataBH.push(movieObj);
     //createMovie(titleValue,urlHack);
-    createMovieThumb(titleValue,urlHack,posterUrl,movideInfo.overview,genreMovie,movideInfo.id, movideInfo.release_date, movideInfo.cast, movideInfo.type, movideInfo.trailer)
+    dataDB.createMovieThumb(movieObj)
     //INSERISCI DB LOCALSTORAGE
-    localStorage.setItem(`[${cont}]-[${titleValue}]`, JSON.stringify(movieObj));
+    dataDB.insertData(movieObj)
+    dataDB.totMovieDb++;
+    //localStorage.setItem(`[${cont}]-[${titleValue}]`, JSON.stringify(movieObj));
     genreMovie=[];
     })
     .catch(error => {
@@ -344,7 +353,7 @@ return movies
 
 
 // chiamata api per prendere info film su themoviedv
-const getMovieInfo = async (nameMovie)=>{
+const getMovieInfo = async (nameMovie,url)=>{
     let apiKey = 'B7d5b93b9906b906126b9fd2f0335948';
     let apiUrl = `https://api.themoviedb.org/3/search/movie`;
     //let name=nameMovie.replace(/ /g, '+');
@@ -414,22 +423,26 @@ if(movies.results.length === 0){
     console.log(resultt)
 
     return resultt
-   let objj={
-     film:nameMovie,
-    genre_ids:[11],
-    id:324552,
-    original_title: nameMovie,
-    overview:"No Info...",
-    poster_path : "https://fcdn.ingenuitylite.com/themebuilder-assets/placeholders/image.jpeg"
-   }
-   return objj
-}
 
+}
+//CONTROLLARE SE è EFFETTIVAMENTE IL TITOLO GIUSTO NELL API
+//  nameMOvie
+console.log(movies.results)//results[0]
+if(movies.results.length > 0 ){ //cè più di 1 risultato
+  for (var i = 0; i <movies.results.length; i++){
+    //se il nome del film trovato === results api title
+    if(movies.results[i].title===nameMovie){
+      movies.results[0]=movies.results[i];
+    }
+  }
+
+}
+//let testing=await checkMeMovie(url);
 
 movies.results[0].cast =await getCastByid(movies.results[0].id);
 movies.results[0].trailer = await getTrailer(movies.results[0].id);
 movies.results[0].type='movie';
-console.log(movies.results[0])//results[0]
+
 return movies.results[0]
 
 }
@@ -809,153 +822,8 @@ databaseManager.openDatabase()
     console.error(error);
   });
 */
-class IndexDB {
-    constructor(dbName, storeName, version = 1) {
-      this.dbName = dbName;
-      this.storeName = storeName;
-      this.version = version;
-      this.db = null;
-    }
-  
-    openDatabase() {
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open(this.dbName, this.version);
-  
-        request.onsuccess = (event) => {
-          this.db = event.target.result;
-          resolve(this.db);
-        };
-  
-        request.onerror = (event) => {
-          reject(`Errore nell'apertura del database: ${event.target.error}`);
-        };
-  
-        request.onupgradeneeded = (event) => {
-          const db = event.target.result;
-  
-          if (!db.objectStoreNames.contains(this.storeName)) {
-            db.createObjectStore(this.storeName, { keyPath: "id" });
-          }
-        };
-      });
-    }
-  
-    insertDataArray(dataArray) {
-      return new Promise((resolve, reject) => {
-        if (!this.db) {
-          reject("Database non aperto. Chiamare openDatabase() prima di inserire i dati.");
-          return;
-        }
-  
-        const transaction = this.db.transaction([this.storeName], "readwrite");
-        const objectStore = transaction.objectStore(this.storeName);
-  
-        transaction.oncomplete = () => {
-          resolve("Inserimento dati completato con successo");
-        };
-  
-        transaction.onerror = (event) => {
-          reject(`Errore nell'operazione di transazione: ${event.target.error}`);
-        };
-  
-        for (const data of dataArray) {
-            console.log(data.id)
-      /*  let keyEsist= this.isKeyThere(data.id);
-        if (keyEsist) {
-            console.warn(`Chiave già presente nel database: ${data.id}. L'inserimento non è avvenuto.`);
-            return "Chiave già presente nel database. L'inserimento non è avvenuto.";
-          }*/
-          objectStore.add(data);
-        }
-      });
-    }
-  
-    async refillIndexDB(dataArray) {
-      try {
-        await this.openDatabase(); // Assicurati che il database sia aperto prima di inserire i dati
-        await this.insertDataArray(dataArray); // Inserisci i dati multipli in un'unica transazione
-        console.log('Inserimento dati da localStorage in IndexedDB completato!');
-      } catch (error) {
-        console.error(error);
-      }
-    }
-
-    async isKeyExists(key) {
-        try {
-          if (!this.db) {
-            throw new Error("Database non aperto. Chiamare openDatabase() prima di verificare la chiave.");
-          }
-    
-          const transaction = this.db.transaction([this.storeName], "readonly");
-          const objectStore = transaction.objectStore(this.storeName);
-    
-          const getRequest = objectStore.get(key);
-    
-          return new Promise((resolve, reject) => {
-            getRequest.onsuccess = () => {
-              resolve(getRequest.result !== undefined);
-            };
-    
-            getRequest.onerror = (event) => {
-              reject(`Errore nel recupero della chiave: ${event.target.error}`);
-            };
-          });
-        } catch (error) {
-          console.error(error);
-          return false;
-        }
-      }
-
-
-      async insertData(data) {
-        try {
-          if (!this.db) {
-            throw new Error("Database non aperto. Chiamare openDatabase() prima di inserire i dati.");
-          }
-    
-          const transaction = this.db.transaction([this.storeName], "readwrite");
-          const objectStore = transaction.objectStore(this.storeName);
-    
-          const keyExists = await this.isKeyExists(data.id);
-    
-          if (keyExists) {
-            console.warn(`Chiave già presente nel database: ${data.id}. L'inserimento non è avvenuto.`);
-            return "Chiave già presente nel database. L'inserimento non è avvenuto.";
-          }
-    
-          const addRequest = objectStore.add(data);
-    
-          return new Promise((resolve, reject) => {
-            addRequest.onsuccess = () => {
-              resolve("Dati aggiunti con successo");
-            };
-    
-            addRequest.onerror = (event) => {
-              reject(`Errore nell'aggiunta dei dati: ${event.target.error}`);
-            };
-          });
-        } catch (error) {
-          console.error(error);
-          return "Errore durante l'inserimento dei dati.";
-        }
-      }    
-
-
-
-  }
-  
-  // Utilizzo della classe
-  const multipleData = [
-    { id: 1, name: "Prodotto A", price: 19.99 },
-    { id: 2, name: "Prodotto B", price: 29.99 },
-    { id: 3, name: "Prodotto C", price: 39.99 }
-  ];
-  
-const databaseManager = new IndexDB("CroFlix", "Film&Serie");
-  
+// crea new db con tutti i film dell'array dataDB 
 //databaseManager.refillIndexDB(multipleData);
-  
-
 /*
    // Utilizzo della classe
 const databaseManager = new IndexDB("CroFlix", "Film&Serie");
@@ -1016,5 +884,473 @@ const recommendedProductsPagePromise = fetch('https://some-website.com/recommend
 Promise.all([newProductsPagePromise, recommendedProductsPagePromise]); 
 Conclusion */
 
+class INDEX_DB {
+    constructor(dbName =  "CroFlix", storeName = "Film&Serie", version = 1) {
+      this.dbName = dbName;
+      this.storeName = storeName;
+      this.version = version;
+      this.db = null;
+      this.errorLOg = null;
+      this.transaction = null;
+      this.objectStore = null;
+      //this.openDatabase()
+      this._CONT=null;
+      this.createdThumb=0;
+
+    }
+
+    openDatabase(callback=undefined) {
+
+        const request = indexedDB.open(this.dbName, this.version);
+
+        request.onsuccess = (event) => {
+            this.db = event.target.result;
+            console.log('database aperto con successo!')
+            if (callback) { callback(); }
+        };
+
+        request.onerror = (event) => { throw new Error(`Errore nell'apertura del database: ${event.target.error}`);};
+
+        //prima volta o upgrade versione db
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+    
+            if (!db.objectStoreNames.contains(this.storeName)) {
+              db.createObjectStore(this.storeName, { keyPath: "film" });//keyPath: "id"  -  autoIncrement: true
+              
+            }
+          };
+    }
+
+    initDB() {
+     return new Promise((resolve, reject) => {
+        const request = indexedDB.open(this.dbName, this.version);
+
+        request.onsuccess = (event) => {
+            this.db = event.target.result;
+            console.log('database aperto con successo!')
+            resolve()
+        };
+
+        request.onerror = (event) => { reject(event.target.error); };
+
+        //prima volta o upgrade versione db
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+    
+            if (!db.objectStoreNames.contains(this.storeName)) {
+              db.createObjectStore(this.storeName, { keyPath: "film" });//keyPath: "id"  -  autoIncrement: true
+              
+            }
+            resolve()
+          };
+     })
+    }
+// return new Promise((resolve, reject) => {
+    startTransaction(mode='readwrite'){
+        this.transaction = this.db.transaction([this.storeName], mode);
+        this.objectStore = this.transaction.objectStore(this.storeName);
+    }
+
+    insertData(data){ // data = {...}  o meglio [{}]
+        this.startTransaction()
+
+        const addRequest = this.objectStore.add(data);
+
+        addRequest.onsuccess = () => {
+            console.log("Dati aggiunti con successo");
+          };
+  
+          addRequest.onerror = (event) => {
+            console.log(`Errore nell'aggiunta dei dati: ${event.target.error}`);
+          };
+    }
+
+    searchDataPromise(key) { // cerca by nome film key
+    
+        return new Promise((resolve, reject) => {
+            this.startTransaction('readonly');
+            const getRequest = this.objectStore.get(key);
+
+            getRequest.onsuccess = function() {
+                const oggettoTrovato = getRequest.result;
+          
+                if (oggettoTrovato) {
+                  console.log('Oggetto trovato nel database:', oggettoTrovato);
+                    resolve(oggettoTrovato)
+              
+                } else {
+                  console.log('Oggetto non trovato nel database.');
+                    reject(undefined)
+ 
+                  }
+                }
+              });
+
+        }
+
+    searchData(key,callback=undefined) { // cerca by nome film key
+
+        this.startTransaction('readonly')
+
+          const getRequest = this.objectStore.get(key);
+    
+        
+    getRequest.onsuccess = function() {
+        const oggettoTrovato = getRequest.result;
+  
+        if (oggettoTrovato) {
+          console.log('Oggetto trovato nel database:', oggettoTrovato);
+          if (callback) { callback(oggettoTrovato); }
+          return oggettoTrovato
+        } else {
+          console.log('Oggetto non trovato nel database.');
+          if (callback) {
+            callback(null);
+            return undefined
+          }
+        }
+      };
+  
+      getRequest.onerror = function() {
+        console.error('Errore durante la ricerca dell\'oggetto:', getRequest.error);
+        if (callback) {
+          callback(null);
+        }
+      };
+    };
+
+    search(key) { // cerca by nome film key
+
+    return new Promise((resolve, reject) => {
+        this.startTransaction('readonly')
+
+          const getRequest = this.objectStore.get(key);
+    
+        
+    getRequest.onsuccess = function() {
+        let oggettoTrovato = getRequest.result;
+        if (oggettoTrovato) {
+          console.log('Oggetto trovato nel database:', oggettoTrovato);
+          resolve(oggettoTrovato)
+        } else {
+          console.log('Oggetto non trovato nel database.');
+            resolve(false)
+          }
+        }
+    
+      
+  
+      getRequest.onerror = function() {
+        console.error('Errore durante la ricerca dell\'oggetto:', getRequest.error);
+        reject(false)
+        }
+    })
+};
+
+
+conf(key) { // cerca by nome film key
+
+  return new Promise((resolve, reject) => {
+      this.startTransaction('readonly')
+
+        const getRequest = this.objectStore.get(key);
+  
+      
+  getRequest.onsuccess = function() {
+      let oggettoTrovato = getRequest.result;
+      if (oggettoTrovato) {
+        console.log('Oggetto trovato nel database:', oggettoTrovato);
+        this._CONT=oggettoTrovato.id;
+        resolve(oggettoTrovato.id)
+      } else {
+        console.log('Oggetto non trovato nel database.');
+          resolve(false)
+        }
+      }
+  
+    
+
+    getRequest.onerror = function() {
+      console.error('Errore durante la ricerca dell\'oggetto:', getRequest.error);
+      reject(false)
+      }
+  })
+};
+
+      async isKeyExists(key) {
+    
+            this.startTransaction()
+    
+          const getRequest = this.objectStore.get(key.film);
+    
+            getRequest.onsuccess = (event) => {
+                const existingObject = event.target.result;
+
+                if (!existingObject) {
+                    this.startTransaction()
+                    // L'oggetto non esiste ancora, puoi procedere con l'inserimento
+                    const addRequest = this.objectStore.add(key);
+
+                    addRequest.onsuccess = () => {
+                      console.log('Oggetto inserito con successo nel database.');
+                    };
+            
+                    addRequest.onerror = () => {
+                      console.error('Errore durante l\'inserimento dell\'oggetto:', addRequest.error, key.film);
+                    };
+                }else {console.log('oggetto già esistente..'+existingObject)}
+
+                //console.log(getRequest.result)
+                //if(getRequest.result === undefined) return false // NN CI SN COPIE
+              //return true
+            };
+    
+            getRequest.onerror = (event) => {
+                console.log(getRequest)
+              console.log(`Errore nel recupero della chiave: ${event.target.error}`);
+                
+            };
+
+      }
+    
+    async refillIndexDB(dataArray) { 
+            for(let i=0;i < dataArray.length; i++){
+                this.isKeyExists(dataArray[i])
+                //if(!tmp){ continue }else {await this.insertData(dataArray[i])}
+            }
+
+          //await this.insertDataArray(dataArray); // Inserisci i dati multipli in un'unica transazione
+          console.log('Inserimento dati da localStorage in IndexedDB completato!');
+        
+      }
+
+
+    getFirst50Entries(callback) {
+        const transaction = this.startTransaction('readonly');
+        this.transaction = transaction;
+    
+        const objectStore = this.objectStore;
+    
+        const cursorRequest = objectStore.openCursor();
+        let count = 0;
+    
+        cursorRequest.onsuccess = function (event) {
+          const cursor = event.target.result;
+          if (cursor && count < 50) {
+            // Puoi gestire ogni voce del cursore qui
+            console.log('Voce:', cursor.value);
+            count++;
+            cursor.continue();
+          } else {
+            // Tutte le voci sono state elaborate o raggiunto il limite di 50
+            if (callback) {
+              callback();
+            }
+          }
+        };
+    }
+
+    getEntriesAndPrint(qnt=50,callback) {
+        this.startTransaction('readonly');
+    
+        const cursorRequest = this.objectStore.openCursor();
+        let count = 0;
+    
+        cursorRequest.onsuccess = function (event) {
+          const cursor = event.target.result;
+         
+          //if(qnt>cursor.length){qnt=cursor.length}
+          if (cursor && count < qnt) {
+            // Puoi gestire ogni voce del cursore qui
+            console.log('Voce:', cursor.value);
+            if(cursor.value.film==="CONT"){ cursor.continue(); 
+            }else{
+              count++;
+              console.log(event)
+              dataDB.createMovieThumb(cursor.value);
+              cursor.continue();
+            }
+            
+          } else {
+            // Tutte le voci sono state elaborate o raggiunto il limite di 50
+            if (callback) {
+              callback();
+            }
+          }
+        };
+    }
+
+    createMovieThumb({film,linkHost,poster_path,overview,genre_ids,id,release_date,cast,type,trailer }){
+       this.createdThumb++;
+      try{
+            let div=`<div class='postcard'><img src='${poster_path}' alt='Movie Poster'></img>`;
+            let serieTvHtml= type==='tv' ? `<a class="seriefilm">SerieTv</a>` : ``;
+            let postCard=`${serieTvHtml}<div class='postcard-content'><div class='title'>${film}</div><div class='description'>${overview}</div>`;
+            let trailerHtml=trailer ? `<a href="${trailer}" target="new_blank" class="trailer">Trailer</a>` : ``; 
+            let genere=`${trailerHtml}<div style='overflow-x:clip;' class='genre'>${genre_ids.join(',')}</div> <div style='font-size:x-small;color:burlywood'>Cast:${cast.join(',')}</div> <div class='genre'>${release_date}</div>`
+            //let functionTVSHOW=
+            let button=`<a id='${id}' href='#' class='button'>Guarda ora</a></div></div>`
+        
+            
+            //creo variabili con codice html completo del div postcard
+            let htmlVar=div+postCard+genere+button;
+            //creo un nuovo object document con html della variabile
+            let domPars= new DOMParser();
+            let doc=domPars.parseFromString(htmlVar,'text/html');
+            //estraggo elemento postcard dal doc
+            let tmpPostcard=doc.querySelector('.postcard');
+        
+            //appendi elemento postcard al body...senza riscrivere di nuovo tutto gli el della pagina
+            document.body.appendChild(tmpPostcard); 
+        
+            //let elTmp=document.getElementById('myspace')
+           // document.querySelector("body").innerHTML+=div+postCard+genere+button;
+          }catch(err){
+            console.log(err)
+          }finally{
+            (document.getElementById(id)).addEventListener('click', function handleClick() {
+        
+                showMeMovie(linkHost);
+              });
+          }
+    }
+    updateData(updatedData) {
+      this.startTransaction();
+      // Aggiorna i dati nell'object store
+      
+      const updateRequest = this.objectStore.put(updatedData);
+    }
+    getLength(){
+      return new Promise((resolve, reject) => {
+      this.startTransaction();
+      let conterL=this.objectStore.count()
+
+
+      conterL.onsuccess = (event) => {
+        const count = event.target.result;
+        console.log(`Il numero totale di voci nel database è: ${count}`);
+        this.totMovieDb=count;
+        resolve(count);
+      }
+      conterL.onerror = (event) => {
+        console.log(getRequest)
+      console.log(`Errore : ${event.target.error}`);
+        reject(false)
+    };
+     
+
+  })
+    }
+    
+//END CLASS KITEBIV
+}
+
+
+
+class Init extends INDEX_DB{
+    
+    _maxThumbPage=50
+    totalMovie=0
+    _dataBH=[]
+    optionApi={
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiN2Q1YjkzYjk5MDZiOTA2MTI2YjlmZDJmMDMzNTk0OCIsInN1YiI6IjY1OGM4ZmYwMjIxYmE2N2ZiNmRiNGNjMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.DYgbqqt_fP4bLS0ocTljfGGGPzsG0Av3vqDyLLgddJ4',
+        'Accept': 'application/json'
+      }
+    }
+
+    constructor(CONT) {
+      
+      super()
+      this.contatore=CONT;
+    
+    //createdThumb=this.createdThumb;
+      
+    this._url=`https://streamingcommunity.cz/iframe/${CONT}`;
+    }
+
+    start(qnt){
+        super.getEntriesAndPrint(qnt)
+    }// createMovieThumb(xxx.film,xxx.linkHost,xxx.poster_path,  xxx.overview,xxx.genre_ids,   xxx.id,    xxx.release_date,   xxx.cast,xxx.type, xxx.trailer );
+    info(){
+        console.log(this._url)
+        if(this.contatore){
+
+        }else {this.contatore=1}
+    }
+}
+/*
+
+    cro.searchDataPromise('CONT').then((objj) => {cro._CONT=objj.id;})
+    .catch((err) => {
+      console.log('CONTATORE NON AVVIATO o INIZA...',err);
+      cro._CONT=1;
+    })
+*/
+
+/*
+let cro;
+  function init() {
+    debugger
+    console.log('Inizio');
+    cro=new INDEX_DB();
+    cro.openDatabase(function a(){
+        cro.searchData('CONT',function setCont(findObj){
+            cro._CONT= findObj.id || 0;
+            //qui abbiamo tutto quello che ci serve
+            if(cro._CONT){
+
+            }else cro._CONT=1
+        })
+
+
+    })
+    console.log(cro)
+
+
+    console.log('Fine');
+  }*/
+
+  let dataDB,user;
+  const initApp =async ()=> {
+    //debugger
+    dataDB=new INDEX_DB();
+    let f=await dataDB.initDB();
+    await sleep(500)
+    dataDB._CONT=await dataDB.conf('CONT');
+    //se il db è nuovo
+    if(!dataDB._CONT){
+      dataDB.insertData({film:'CONT', id:1})
+      dataDB.totMovieDb=0
+      dataDB._CONT=1;
+    }else { 
+      //qnt film c sn..
+      let cont=await dataDB.getLength();
+      dataDB.totMovieDb=cont;
+      //se sn più di 50..stampa a skermo sl 50
+      if(cont>51){ dataDB.getEntriesAndPrint(50) }
+      if(cont>5){ dataDB.getEntriesAndPrint(cont-1) }
+     }
+    user=new Init(dataDB._CONT);
+   // user.info();
+  //user.createdThumb=dataDB.createdThumb
+
+
+  /*  if(dataDB._CONT){
+        if(user.contatore>user._maxThumbPage){
+            user.start(user._maxThumbPage)
+        }else{dataDB.getEntriesAndPrint(user.contatore)}
+
+    }else{dataDB._CONT=1;}
+    */
+    console.log(user,dataDB)
+    console.log(dataDB.createdThumb)
+  }
+
+
+
 
 initPage();
+initApp()
