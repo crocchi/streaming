@@ -2,19 +2,46 @@
 
   let frame=document.getElementById('frame')
     document.getElementById('frame').src=url;
-/*
-    // Aggiungere un listener per l'evento di caricamento
-frame.addEventListener('load', function() {
-  console.log('Il frame è stato caricato correttamente!');
-  // Puoi eseguire ulteriori azioni qui se necessario
-});
 
-// Aggiungere un listener per l'evento di errore (nel caso il caricamento fallisca)
-frame.addEventListener('error', function(error) {
-  console.error('Errore durante il caricamento del frame:', error);
-  // Puoi gestire l'errore qui se necessario
-});
-*/
+    /// FUTURE  
+/*
+const url = 'https://example.com/api/data';  // Sostituisci con il tuo URL
+const corsAnywhereUrl = 'https://cors-anywhere.herokuapp.com/';
+
+fetch(corsAnywhereUrl + url, {
+  method: 'GET',
+  headers: {
+    'Origin': 'https://your-origin.com'  // Sostituisci con il tuo origin
+  }
+})
+  .then(response => response.json())
+  .then(data => {
+    console.log(data);
+  })
+  .catch(error => {
+    console.error('Errore nella richiesta fetch:', error);
+  });
+
+
+switch (document.readyState) {
+  case "loading":
+    // The document is loading.
+    break;
+  case "interactive": {
+    // The document has finished loading and we can access DOM elements.
+    // Sub-resources such as scripts, images, stylesheets and frames are still loading.
+    const span = document.createElement("span");
+    span.textContent = "A <span> element.";
+    document.body.appendChild(span);
+    break;
+  }
+  case "complete":
+    // The page is fully loaded.
+    console.log(
+      `The first CSS rule is: ${document.styleSheets[0].cssRules[0].cssText}`,
+    );
+    break;
+} */
   }
 
 const checkMeMovie=(url)=>{
@@ -51,7 +78,7 @@ const checkMeMovie=(url)=>{
   let cont=1;
   let createThumb=0;
   let maxThumb=50;
-  let url=`https://streamingcommunity.cz/iframe/${cont}`
+  let url=`https://${document.location.host}/iframe/${cont}`
   let dataBH=[];
   optionApi={
     method: 'GET',
@@ -84,7 +111,7 @@ if(localStorage['CONT']){
 
 let timerInterval; //= setInterval(updateTimer, 10000);
 
-const timer =(onnoff,timer=10000)=>{//true ,false
+const timer =(onnoff,timer=12000)=>{//true ,false
     
     if(onnoff){
         timerInterval = setInterval(updateTimer, 10000);
@@ -138,30 +165,34 @@ const initPage = () => {
     btnStop.addEventListener('click', function(){
     timer(false)
     });
-
-    window.addEventListener('scroll', function() {
+    let attivo=false;
+    window.addEventListener('scroll', async function() {
         // Altezza dello scroll del client
+        if(attivo){console.log('ancora attivo...'); return}
         var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-      
         // Altezza area Client total
         var clientHeight = document.documentElement.clientHeight;
       
         // Verifica se l'utente è sceso fino in fondo
-        if (scrollTop + 930 >= clientHeight && scrollTop > 500  && dataBH.length > maxThumb+15) {
+        if (!attivo && scrollTop + 930 >= clientHeight && scrollTop > 500  && dataDB.totMovieDb > dataDB.createdThumb+10) {
+          attivo=true;
+          await dataDB.getEntriesAndPrint_(15);
           console.log('Sei arrivato in fondo alla pagina!');
-          loggerStatus('sto caricando altri film...');
-          movieShowSize(10);
-          // Puoi eseguire azioni specifiche qui quando l'utente è arrivato in fondo
+        //  loggerStatus('sto caricando altri film...');
+        //await sleep(1000);
+         attivo=false;
         }
+
       });
 
   }
-
+let contGlobalLive;
 const updateTimer =async ()=> {
   //debugger
     cont=await dataDB.search('CONT');
+    contGlobalLive=cont;
     cont=cont.id
-    url=`https://streamingcommunity.cz/iframe/${cont}`
+    url=`https://${document.location.host}/iframe/${cont}`
 
     console.log(`provo con il seguente link [${url}]`);
     loggerStatus(`provo con il seguente link:[${url}] cont:[${cont}]`);
@@ -175,10 +206,14 @@ const updateTimer =async ()=> {
 
 const boom =async (url)=>{
     //window.location.href = url;
+    try{
+
     fetch(url)
     .then(response => {
       if (!response.ok) {
-        throw new Error('Errore nella richiesta');
+       // throw new Error('Errore nella richiesta');
+        console.log('Link ID Assente:'+dataDB._CONT)
+        return
       }
       //console.log(response)
 
@@ -187,29 +222,20 @@ const boom =async (url)=>{
     .then(async data => {
       // Manipola i dati come necessario
       //console.log(data);
+      if (!data){ return }
       //RICEVE UN JSON CON HTML--PARSE JSON PAGE HTML IN DOC
       let domPars= new DOMParser();
       let doc=domPars.parseFromString(data,'text/html')
      //console.log(doc.all[7].src) 
       let urlHack=doc.all[7].src;
+      
+      let hackTwo=new Scrappy(cont) ;
 
       
       var titleValue = getParameterByName("title", urlHack);
       let movideInfo=await getMovieInfo(titleValue,urlHack);
       //console.log(movideInfo)
 
-      //funzione per trovare il link della serie tv
-      /*
-      url=https://streamingcommunity.cz/iframe/5301
-      
-fetch https://streamingcommunity.cz/iframe/5301
-id:19092
-fetch https://streamingcommunity.cz/watch/5301
-<iframe src="https://streamingcommunity.cz/iframe/5301?episode_id=33658&amp;next_episode=1"></iframe>
-
-https://streamingcommunity.cz/iframe/5301?episode_id=33658 ...33659..33660
- 
-      */
 
       let typeShow=movideInfo.type;
       let linkShowUrl;
@@ -225,7 +251,7 @@ https://streamingcommunity.cz/iframe/5301?episode_id=33658 ...33659..33660
 
 
       console.log(`${typeShow}: [${titleValue}]`);
-      loggerStatus(`${typeShow}:[${titleValue}] TOT:[${dataDB.totalMovie}]`);
+      loggerStatus(`${typeShow}:[${titleValue}] TOT:[${dataDB.totMovieDb}]`);
       //console.log(`Film originale: [${movideInfo.original_title ||='DatiNonTrovati'}]`);
       
       //SE MANCA IMG POSTER ...METTE UNA DEFAULT
@@ -303,10 +329,14 @@ https://streamingcommunity.cz/iframe/5301?episode_id=33658 ...33659..33660
     //localStorage.setItem(`[${cont}]-[${titleValue}]`, JSON.stringify(movieObj));
     genreMovie=[];
     })
-    .catch(error => {
-      console.log('Link non esistente:', error);
-      genreMovie=[];
-    });
+
+  } catch(err){
+    console.log('Link non esistente:');
+     
+  }finally{ genreMovie=[];}
+    
+      
+    //});
 }
 
 //https://vixcloud.co/embed/148611?
@@ -350,12 +380,13 @@ const movies = await response.json();
 return movies
 
 }
-
+let hackTwo;
 
 // chiamata api per prendere info film su themoviedv
 const getMovieInfo = async (nameMovie,url)=>{
     let apiKey = 'B7d5b93b9906b906126b9fd2f0335948';
     let apiUrl = `https://api.themoviedb.org/3/search/movie`;
+    if(!nameMovie){ console.log('Operazione Fermata'); return }
     //let name=nameMovie.replace(/ /g, '+');
     //  https://api.themoviedb.org/3/movie/12445/credits?language=it-IT'   --<<  X PRENDERE CAST TRAMITE ID
     //          api.themoviedb.org/3/search/movie?query=Black+Adam&include_adult=false&language=it-IT&page=1&api_key=B7d5b93b9906b906126b9fd2f0335948
@@ -394,11 +425,24 @@ fetch('https://api.themoviedb.org/3/movie/12445/credits?language=en-US', options
   nameMovie= nameMovie.replace(/\[SUB-ENG\]/g, " ");
   nameMovie= nameMovie.replace('SUB-ITA', " ");
   nameMovie= nameMovie.replace('SUB-ENG', " ");
+//PRIMA DI INIZIARE ...LANCIO TE....SCRAPPY
+//debugger
+hackTwo=new Scrappy(contGlobalLive.id)
+
+  await sleep(500)
+ 
+ let reslt= await hackTwo.fetchiamo()
+  // poi metto anke se è serie o film..m vac a cucca 05.00
+  hackTwo.year;
+  hackTwo.serieOfilm;
+
+
 
     const queryParameters = {
       query: nameMovie,
       include_adult: false,
       language: 'it-IT',
+      year : hackTwo.year,
       page: 1
     }
 
@@ -408,25 +452,36 @@ const urlWithParams = new URL(apiUrl);
         ...queryParameters,
         api_key: apiKey
 });
-const response = await fetch(urlWithParams,optionApi);
- 
-const movies = await response.json();
+let movies;
+if(hackTwo.serieOfilm !== 'serie'){
+  
+  const response = await fetch(urlWithParams,optionApi);
+ movies = await response.json();
+}else {
 
-if(movies.results.length === 0){
+
+//movies.results='';
+//if(movies.results.length === 0){
+ // debugger
     console.log("NO INFO RIGUARDO IL FILM...["+nameMovie+"]");
     console.log("CERCO DB SERIE TV...");
     //prova a cercare nelle serie tv
     let resultt=await getTvShowInfo(nameMovie);
     resultt.cast=await getCastByid(resultt.id,'tv');
     resultt.trailer= await getTrailer(resultt.id,'tv');
+    resultt.release_date=await hackTwo.year;
     resultt.type='tv';
     console.log(resultt)
 
     return resultt
 
+//}
+
 }
 //CONTROLLARE SE è EFFETTIVAMENTE IL TITOLO GIUSTO NELL API
 //  nameMOvie
+//nn server ho implementato anno film
+/*
 console.log(movies.results)//results[0]
 if(movies.results.length > 0 ){ //cè più di 1 risultato
   for (var i = 0; i <movies.results.length; i++){
@@ -436,7 +491,7 @@ if(movies.results.length > 0 ){ //cè più di 1 risultato
     }
   }
 
-}
+}*/
 //let testing=await checkMeMovie(url);
 
 movies.results[0].cast =await getCastByid(movies.results[0].id);
@@ -455,6 +510,7 @@ const getTvShowInfo = async (nameTv)=>{
         query: nameTv,
         include_adult: false,
         language: 'it-IT',
+        year: hackTwo.year,
         page: 1
     }
 
@@ -474,6 +530,7 @@ const response = await fetch(urlWithParams,{
 
 const tvShow = await response.json();
 console.log(tvShow.results[0]);
+
 return tvShow.results[0]
 
 }
@@ -577,16 +634,16 @@ const searchMovie=(movie)=>{
     let searchMovie=movie.toLocaleUpperCase();
     for (var i = 0; i < data.length; i++){
         //se nn trovi la stringa ...nascondi elemento
-        if(!(document.querySelectorAll(".postcard")[i].textContent).toLocaleUpperCase().includes(searchMovie)){
-            document.querySelectorAll(".postcard")[i].style='display:none';
-        }else {document.querySelectorAll(".postcard")[i].style='';}
+        if(!(data[i].textContent).toLocaleUpperCase().includes(searchMovie)){
+            data[i].style='display:none';
+        }else {data[i].style='';}
         
     }
 
 
 }
 
-//cerca movie nell array dataBH
+//cerca movie nell array dataBH---indexeDB
 const searchMovieLocal=(movie)=>{
     //debugger
     let tmp=[]
@@ -597,90 +654,49 @@ const searchMovieLocal=(movie)=>{
     //ricerca by actors
     if(movie.includes("@ACT")){
        let actor= movie.replace("@ACT ", "");
-       searchMovieLocalByActor(actor);
+       dataDB.mainSearch('cast',actor);
+       //searchMovieLocalByActor(actor);
        return
     }
 
      //ricerca by serie
      if(movie.includes("@SERIETV")){ //serie:
         //let actor= movie.replace("ACTORS:", "");
-        searchMovieLocalByType('TV');
+       // searchMovieLocalByType('TV');
+       dataDB.mainSearch('type','TV');
         return
      }
 
           //ricerca by genere
-          if(movie.includes("@GEN")){ //serie:
+     if(movie.includes("@GEN")){ //serie:
             let gen= movie.replace("@GEN ", "");
-            searchMovieLocalByGenre(gen);
+           // searchMovieLocalByGenre(gen);
+            dataDB.mainSearch('genre_ids',gen);
             return
-         }
+      }
+
+     if(movie.includes("@PEER")){
+          let string= movie.replace("@PEER ", "");
+
+          if(string.includes('CONNECT')){
+            p2p()
+          }
+           if(string.includes('OPEN')){
+            //console.log('apri peer id')
+            let idString= string.replace("OPEN ", "");
+            console.log('mi collego al peer Id:'+idString)
+            p2p('OPEN',idString);
+          }
+          //searchMovieLocalByActor(actor);
+          return
+       }
 
     console.log('ricerca...'+textSearchArea)
 
-   
-      if(movie.length < 3){ return undefined  }
-    for (var i = maxThumb; i < dataBH.length; i++){
-       if( dataBH[i].film.toLocaleUpperCase().includes(movie) ) { tmp.push(dataBH[i]) }
-    }
-    console.log(tmp);
-    maxThumb=maxThumb + tmp.length;
-    tmp.forEach( (el,index)=>{ 
-        //console.log(index)
-        createMovieThumb(el.film,el.linkHost,el.poster_path,el.overview,el.genre_ids ,el.id ,el.release_date, el.cast, el.type, el.trailer)
-    } )
-}
+    //CERCA TRAMITE NOME FILM
+    dataDB.mainSearch('film',movie);
 
-const searchMovieLocalByActor=(actor)=>{
-    //debugger
-    let tmp=[]
-//    let actors= actor.toLocaleUpperCase();
-    for (var i = maxThumb; i < dataBH.length; i++){
-        for (var z = 0; z < dataBH[i].cast.length; z++){
-        if(dataBH[i].cast[z].toLocaleUpperCase().includes(actor)){ tmp.push(dataBH[i]); continue}
-    }
-        }
 
-     maxThumb=maxThumb + tmp.length;
-     tmp.forEach( (el)=>{ 
-        
-         createMovieThumb(el.film,el.linkHost,el.poster_path,el.overview,el.genre_ids ,el.id ,el.release_date, el.cast, el.type, el.trailer)
-     } )
-    
-}
-
-const searchMovieLocalByType=(type)=>{
-    //debugger
-    let tmp=[]
-//    let actors= actor.toLocaleUpperCase();
-    for (var i = maxThumb; i < dataBH.length; i++){       
-            if(dataBH[i].type.toLocaleUpperCase().includes(type)){ tmp.push(dataBH[i]); continue}
-        }
-    
-     maxThumb=maxThumb + tmp.length;
-     tmp.forEach(async (el)=>{ 
-        await sleep(400);
-         createMovieThumb(el.film,el.linkHost,el.poster_path,el.overview,el.genre_ids ,el.id ,el.release_date, el.cast, el.type, el.trailer)
-     } )
-    
-}
-
-const searchMovieLocalByGenre=(genre)=>{
-    //debugger
-    let tmp=[]
-//    let actors= actor.toLocaleUpperCase();
-    for (var i = maxThumb; i < dataBH.length; i++){      
-        for (var z = 0; z < dataBH[i].genre_ids.length; z++){
-
-            if(dataBH[i].genre_ids[z].toLocaleUpperCase().includes(genre)){ tmp.push(dataBH[i]); continue}
-        } 
-    }
-    
-     maxThumb=maxThumb + tmp.length;
-     tmp.forEach(async (el)=>{ 
-        await sleep(400);
-         createMovieThumb(el.film,el.linkHost,el.poster_path,el.overview,el.genre_ids ,el.id ,el.release_date, el.cast, el.type, el.trailer)
-     } )
-    
 }
 
 const searchMovieLocalById=(id)=>{
@@ -708,9 +724,8 @@ const searchMovieLocalByName=(movie)=>{
 }
 
   const movieShowSize = (qnt=50)=>{
-    //maxThumb=50;
-    //debugger
-    loggerStatus("Aggiunti ["+qnt+"] film. Tot Load Film:["+maxThumb+"] Tot Film DB:["+dataBH.length+"] ")
+
+    loggerStatus("Aggiunti ["+qnt+"] film. Tot Load Film:["+dataDB.createdThumb+"] Tot Film DB:["+dataDB.totalMovie+"] ")
     let maxThumbBefore=maxThumb;
     maxThumb=maxThumb+qnt;//100
     for (var i = maxThumbBefore; i < maxThumb; i++){
@@ -723,7 +738,7 @@ const searchMovieLocalByName=(movie)=>{
 
 const getLinkTvShow=async (iframeID)=>{
 
-    let urlCast=`https://streamingcommunity.cz/watch/${iframeID-1}`;
+    let urlCast=`https://${document.location.host}/watch/${iframeID-1}`;
     
     let iframe=document.createElement('iframe');
     iframe.src=urlCast;
@@ -742,7 +757,7 @@ const getLinkTvShow=async (iframeID)=>{
 
         var parentElement = iframe2.parentNode;
         parentElement.removeChild(iframe2);
-        }catch (err){console.log(err)}finally{}
+        }catch (err){}finally{}
        
         //let urlShorLink=
         return srcCodeE 
@@ -754,28 +769,60 @@ const getLinkTvShow=async (iframeID)=>{
 const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
 
 const nextShow = () => {
-    //debugger
     let el=document.getElementById('frame').src;
     let episodeId= parseInt(getParameterByName('episode_id',el));
     //episodeId= 1+ episodeId;
-   let stringTmpp= el.replace("https://streamingcommunity.cz/iframe/", "");
+   let stringTmpp= el.replace(`https://${document.location.host}/iframe/`, "");
     let stringtmp=`?episode_id=${episodeId}&next_episode=1`;
     stringTmpp=stringTmpp.replace(stringtmp, "");
-    let urlCast=`https://streamingcommunity.cz/iframe/${stringTmpp}?episode_id=${episodeId+1}&next_episode=1`;
+    let urlCast=`https://${document.location.host}/iframe/${stringTmpp}?episode_id=${episodeId+1}&next_episode=1`;
     document.getElementById('frame').src=urlCast;
 }
 
 //CREAZIONE P2P CONNESSIONE ....P2P DATABASE BLOCHCHAIN .. ;;;)
-let peer;
-const p2p =async(id_P2p)=>{
-
+let peer,conn;
+const p2p =async(mode='',id_P2p)=>{
+    modee=mode;
     //INJECT PEERJS LIBRARY
     let element = document.createElement('script');
     element.src = 'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js';
     document.body.appendChild(element);
 
-    peer=new Peer();
 
+    element.onload = function() {// mode=OPEN || CONNECT
+      debugger
+      console.log('Lo script è stato caricato con successo.');
+      // una volta caricato lo script...inizializza costrutto Peer()
+     
+      peer=new Peer(null,{debug:2});
+      if(modee==='OPEN'){
+        console.log('Apri Peer Id')
+        conn = peer.connect(id_P2p,{
+          reliable: true
+      });
+
+      //QUANDO MI COLLEGO AD UN PEER
+      conn.on('open', function() {
+        
+        console.log('collegato al Peer')
+        // Receive messages
+        conn.on('data', function(data) {
+          console.log('Received', data);
+        });
+      
+        // Send messages
+         conn.send('Hello!');
+        });
+
+      conn.on('error',function(err){
+        console.log(err)
+      })
+
+      conn.on('data', function(data) {
+        console.log('Received', data);
+      });
+      }else{
+        
     //x tutti i client che si collegano al mio peer
     peer.on('connection', function(conn) {
         console.log(conn) 
@@ -788,9 +835,14 @@ const p2p =async(id_P2p)=>{
 
     });
 
+    peer.on('data', function(data) {
+      console.log('Received', data);
+  });
+
     //quando apro un peer nuovo
         peer.on('open', function(id) {
         console.log('My peer ID is: ' + id);
+        loggerStatus('PEER ID: '+id);
 
       });
 
@@ -798,84 +850,105 @@ const p2p =async(id_P2p)=>{
       //peer.send('help!')
       //var conn = peer.connect('dest-peer-id');
 
+    };
+
 }
 
+}
 
-/*
-const databaseManager = new IndexDB("CroFlix", "FIlm&Serie");
-databaseManager.openDatabase()
+const peeer= ()=>{
+  const peerId=Math.random().toString(36).substring(7);
+
+ let peerConnection= new RTCPeerConnection();
+
+ // Crea un canale di dati per la comunicazione
+const dataChannel = peerConnection.createDataChannel('myDataChannel');
+
+ // Gestisci l'evento di ricezione di un segnale di offerta
+  peerConnection.ondatachannel = (event) => {
+    const dataChannel = event.channel;
+
+  // Gestisci i messaggi ricevuti dal canale di dati
+  dataChannel.onmessage = (messageEvent) => {
+    const receivedData = messageEvent.data;
+    console.log(`Dati ricevuti: ${receivedData}`);
+  };
+};
+
+// Gestisci l'invio di dati tramite il canale di dati
+dataChannel.onopen = () => {
+  const messageToSend = "Ciao, questo è un messaggio di esempio!";
+  dataChannel.send(messageToSend);
+};
+
+  // Crea un'offerta e gestisci la descrizione locale
+  peerConnection.createOffer()
+  .then(offer => peerConnection.setLocalDescription(offer))
   .then(() => {
-    const data = { id: 1, name: "Prodotto A", price: 19.99 };
-
-    for (var i = 0; i < 10; i++){
-        if(localStorage.getItem(localStorage.key(i)).length <= 40 ){continue}
-        let xxx=JSON.parse(localStorage.getItem(localStorage.key(i)));
-        databaseManager.insertData(data);
-    }
-
-    //return databaseManager.insertData(data);
+    console.log('Offerta creata con successo. Condividi questa offerta con altro peer.');
+    // L'offerta può essere inviata all'altro peer tramite un mezzo di comunicazione
   })
-  .then((message) => {
-    console.log(message);
-  })
-  .catch((error) => {
-    console.error(error);
-  });
-*/
-// crea new db con tutti i film dell'array dataDB 
-//databaseManager.refillIndexDB(multipleData);
-/*
-   // Utilizzo della classe
-const databaseManager = new IndexDB("CroFlix", "Film&Serie");
+  .catch(error => console.error('Errore nella creazione dell\'offerta:', error));
 
-const newData = { id: 4, name: "Prodotto D", price: 49.99 };
+// Esempio di come condividere l'ID con un'altra parte (potrebbe avvenire tramite un server)
+console.log(`ID del peer: ${peerId}`);
 
-databaseManager.openDatabase()
-  .then(() => {
-    return databaseManager.insertData(newData);
-  })
-  .then((result) => {
-    console.log(result);
-  })
-  .catch((error) => {
-    console.error(error);
-  });
-*/
+}
 
-
-//  const databaseManager = new IndexDB("CroFlix", "Film&Serie");
-  
-  //databaseManager.refillIndexDB(multipleData);
-  
+//
+//document.baseURI='https://streamingcommunity.cz/titles/119-df';
 
 class Scrappy {
     response
     body
-    constructor(url,movie){
-        this.movie=movie
-        this.fetchiamo(url)
+    constructor(id){
+       // this.movie=movie  https://streamingcommunity.cz/titles/119-df
+       this.id=id;
+       this.url=`https://${document.location.host}/titles/${id}-topStrunz`
+       //this.year= this.fetchiamo(this._url)
+      
        }
 
-    set fullname(name){
-        if (name.includes(' ')) this._fullName=name;
-        else alert(`${name} is not a full Name!!`);
+    set virutalDomj(x){
+        //if (name.includes(' ')) this._fullName=name;
+       this.virutalDom=x
     }
 
-    get fullName(){
-        return this._fullName;
+    get virutalDomj(){
+        console.dir(this.virutalDom);
+        return
     }
 
     get page(){
         return this.virutalDom
     }
-    async fetchiamo(url){
-        this.response =await fetch(url)
-        this.body = await this.response.text();
+    async fetchiamo(){
+      this.bodyRes =await fetch(this.url).then(res=>res.text())
+      .then(res=>{   
+
+        //debugger
+        //console.log(this.bodyRes);
         this.domParse= new DOMParser();
-        this.virutalDom= this.domParse.parseFromString(this.body,"text/html");
-        return this.virutalDom
+        this.virutalDom= this.domParse.parseFromString(res,"text/html");
+        this.element=this.virutalDom.all;
+       // console.log( this.virutalDom )
+        this.year= this.virutalDom.querySelector("#scroll-region > div > div.info-wrap > div.info > div.overview-tab.overview > div.features > span:nth-child(1)").textContent
+        //'1987 - 
+           this.minuti_stagione= this.virutalDom.querySelector("#scroll-region > div > div.info-wrap > div.info > div.overview-tab.overview > div.features > span:nth-child(2)").textContent;
+          this.minuti_stagione.includes('stagion') ? this.serieOfilm='serie' : this.serieOfilm='film';
+          this.year= this.year.replace(" - ", "");
+          
+          const risultato = {
+            anno: this.year,
+            serieFilm: this.serieOfilm
+          };
+          return (risultato)
+      })
+          
     }
-}
+
+    
+   }
     /*
 const newProductsPagePromise = fetch('https://some-website.com/new-products');
 const recommendedProductsPagePromise = fetch('https://some-website.com/recommended-products');
@@ -1124,8 +1197,58 @@ conf(key) { // cerca by nome film key
           console.log('Inserimento dati da localStorage in IndexedDB completato!');
         
       }
+//RICERCA UNIVERSALE UFFICIALE PER TUTTO
+      mainSearch(propToSearch,valueToSearch) {// cast,type(serie o movie),genre_ids,film(nome film)
+      // debugger
+        const transaction = this.startTransaction('readonly');
+        this.valueToSearch=valueToSearch//.toLocaleUpperCase();
+        this.transaction = transaction;
+        const objectStore = this.objectStore;
+        let cursorRequest = objectStore.openCursor();
 
+        cursorRequest.onsuccess = function (event) {
+          let cursor = event.target.result;
 
+          let arryset=true;
+
+          //skippa il cont dei film
+          if(cursor && cursor.value.film === 'CONT'){ cursor.continue(); cursor=undefined; }
+          
+          
+          if(propToSearch === 'film' || propToSearch === 'type' ){ arryset=false }
+
+          //Controlla se è un array
+          
+    
+            
+            if (cursor && arryset ) { 
+              //cicla e cerca nell0array
+
+              for (var i = 0; i < cursor.value[`${propToSearch}`].length; i++){
+                if( cursor.value[`${propToSearch}`][i].toLocaleUpperCase().includes(valueToSearch) ){
+                  dataDB.createMovieThumb(cursor.value);
+          //continue....altrimenti se trova 2 volte lo stesso  valore nell array stampa due volte il film.. 
+                  //continue
+                }
+
+              }//ciclo for end
+          //cursor.continue(); 
+          
+             }
+             if(!arryset){
+                  if (cursor && cursor.value[`${propToSearch}`].toLocaleUpperCase().includes(valueToSearch)) {
+                    console.log('Oggetto trovato:', cursor.value);
+                    // Puoi fare qualcosa con l'oggetto trovato qui
+                    dataDB.createMovieThumb(cursor.value);
+                  }
+          }
+      
+            // Vai al prossimo oggetto nel cursore
+            if(cursor) { cursor.continue()}
+          
+        }
+
+      }
     getFirst50Entries(callback) {
         const transaction = this.startTransaction('readonly');
         this.transaction = transaction;
@@ -1151,11 +1274,12 @@ conf(key) { // cerca by nome film key
         };
     }
 
-    getEntriesAndPrint(qnt=50,callback) {
+    getEntriesAndPrint(qnt=50,cont,callback) {
         this.startTransaction('readonly');
     
         const cursorRequest = this.objectStore.openCursor();
         let count = 0;
+        let createdThumb=dataDB.createdThumb;
     
         cursorRequest.onsuccess = function (event) {
           const cursor = event.target.result;
@@ -1163,11 +1287,11 @@ conf(key) { // cerca by nome film key
           //if(qnt>cursor.length){qnt=cursor.length}
           if (cursor && count < qnt) {
             // Puoi gestire ogni voce del cursore qui
-            console.log('Voce:', cursor.value);
+            //console.log('Voce:', cursor.value);
             if(cursor.value.film==="CONT"){ cursor.continue(); 
             }else{
               count++;
-              console.log(event)
+             // console.log(event)
               dataDB.createMovieThumb(cursor.value);
               cursor.continue();
             }
@@ -1180,6 +1304,37 @@ conf(key) { // cerca by nome film key
           }
         };
     }
+
+    getEntriesAndPrint_(qnt=50) {
+      this.startTransaction('readonly');
+ 
+      const cursorRequest = this.objectStore.openCursor();
+      let count = 0;
+      let createdThumb=dataDB.createdThumb;  //50
+  
+      cursorRequest.onsuccess = function (event) {
+        const cursor = event.target.result;
+       if(cursor && createdThumb+qnt < count){ return; }
+        //if(qnt>cursor.length){qnt=cursor.length}
+
+        if (cursor && count > createdThumb) {
+          // Puoi gestire ogni voce del cursore qui
+          //console.log('Voce:', cursor.value);
+          if(cursor.value.film==="CONT"){ count++; cursor.continue(); 
+          }else{
+            count++;
+           // console.log(event)
+            dataDB.createMovieThumb(cursor.value);
+            cursor.continue();
+          }
+          
+        } else {
+          cursor.continue();
+          count++;
+        
+        }
+      };
+  }
 
     createMovieThumb({film,linkHost,poster_path,overview,genre_ids,id,release_date,cast,type,trailer }){
        this.createdThumb++;
@@ -1247,75 +1402,10 @@ conf(key) { // cerca by nome film key
 }
 
 
-
-class Init extends INDEX_DB{
-    
-    _maxThumbPage=50
-    totalMovie=0
-    _dataBH=[]
-    optionApi={
-      method: 'GET',
-      headers: {
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJiN2Q1YjkzYjk5MDZiOTA2MTI2YjlmZDJmMDMzNTk0OCIsInN1YiI6IjY1OGM4ZmYwMjIxYmE2N2ZiNmRiNGNjMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.DYgbqqt_fP4bLS0ocTljfGGGPzsG0Av3vqDyLLgddJ4',
-        'Accept': 'application/json'
-      }
-    }
-
-    constructor(CONT) {
-      
-      super()
-      this.contatore=CONT;
-    
-    //createdThumb=this.createdThumb;
-      
-    this._url=`https://streamingcommunity.cz/iframe/${CONT}`;
-    }
-
-    start(qnt){
-        super.getEntriesAndPrint(qnt)
-    }// createMovieThumb(xxx.film,xxx.linkHost,xxx.poster_path,  xxx.overview,xxx.genre_ids,   xxx.id,    xxx.release_date,   xxx.cast,xxx.type, xxx.trailer );
-    info(){
-        console.log(this._url)
-        if(this.contatore){
-
-        }else {this.contatore=1}
-    }
-}
-/*
-
-    cro.searchDataPromise('CONT').then((objj) => {cro._CONT=objj.id;})
-    .catch((err) => {
-      console.log('CONTATORE NON AVVIATO o INIZA...',err);
-      cro._CONT=1;
-    })
-*/
-
-/*
-let cro;
-  function init() {
-    debugger
-    console.log('Inizio');
-    cro=new INDEX_DB();
-    cro.openDatabase(function a(){
-        cro.searchData('CONT',function setCont(findObj){
-            cro._CONT= findObj.id || 0;
-            //qui abbiamo tutto quello che ci serve
-            if(cro._CONT){
-
-            }else cro._CONT=1
-        })
-
-
-    })
-    console.log(cro)
-
-
-    console.log('Fine');
-  }*/
+ 
 
   let dataDB,user;
   const initApp =async ()=> {
-    //debugger
     dataDB=new INDEX_DB();
     let f=await dataDB.initDB();
     await sleep(500)
@@ -1324,31 +1414,17 @@ let cro;
     if(!dataDB._CONT){
       dataDB.insertData({film:'CONT', id:1})
       dataDB.totMovieDb=0
-      dataDB._CONT=1;
+      dataDB._CONT=5;
     }else { 
       //qnt film c sn..
       let cont=await dataDB.getLength();
       dataDB.totMovieDb=cont;
       //se sn più di 50..stampa a skermo sl 50
-      if(cont>51){ dataDB.getEntriesAndPrint(50) }
-      if(cont>5){ dataDB.getEntriesAndPrint(cont-1) }
+      if(cont>51){ dataDB.getEntriesAndPrint(50) 
+      }else { dataDB.getEntriesAndPrint(cont-1) }
      }
-    user=new Init(dataDB._CONT);
-   // user.info();
-  //user.createdThumb=dataDB.createdThumb
-
-
-  /*  if(dataDB._CONT){
-        if(user.contatore>user._maxThumbPage){
-            user.start(user._maxThumbPage)
-        }else{dataDB.getEntriesAndPrint(user.contatore)}
-
-    }else{dataDB._CONT=1;}
-    */
-    console.log(user,dataDB)
-    console.log(dataDB.createdThumb)
+    
   }
-
 
 
 
