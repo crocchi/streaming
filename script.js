@@ -5,6 +5,64 @@
 
     /// FUTURE  
 /*
+// URL del file JSON da scaricare
+var urlFileJSON = 'https://example.com/path/to/dati.json';
+
+// Effettua una richiesta Fetch per ottenere il file JSON
+fetch(urlFileJSON)
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Errore nella richiesta HTTP');
+    }
+    return response.json();
+  })
+  .then(datiConvertiti => {
+    // Apri la connessione a IndexedDB
+    var request = indexedDB.open('IlTuoDatabase');
+
+    request.onsuccess = function(event) {
+      var db = event.target.result;
+
+      // Apri una transazione per scrivere i dati
+      var transaction = db.transaction(['IlTuoOggettoStore'], 'readwrite');
+      var objectStore = transaction.objectStore('IlTuoOggettoStore');
+
+      // Cancella tutte le voci esistenti nell'oggetto store
+      var cancellaRequest = objectStore.clear();
+
+      cancellaRequest.onsuccess = function() {
+        // Scrivi i nuovi dati nell'oggetto store
+        var scriviRequest = objectStore.add(datiConvertiti);
+
+        scriviRequest.onsuccess = function() {
+          console.log('Dati importati con successo.');
+        };
+
+        scriviRequest.onerror = function() {
+          console.error('Errore durante l\'importazione dei dati.');
+        };
+      };
+
+      cancellaRequest.onerror = function() {
+        console.error('Errore durante la cancellazione delle vecchie voci.');
+      };
+    };
+
+    request.onerror = function(event) {
+      console.error('Errore durante l\'apertura del database:', event.target.error);
+    };
+  })
+  .catch(error => {
+    console.error('Errore durante la richiesta del file JSON:', error);
+  });
+
+
+
+
+
+
+
+
 const url = 'https://example.com/api/data';  // Sostituisci con il tuo URL
 const corsAnywhereUrl = 'https://cors-anywhere.herokuapp.com/';
 
@@ -71,7 +129,7 @@ const checkMeMovie=(url)=>{
 
 
   //INIZIALIZZA LA PAGINA
-  let filmInfo="<form id='formSearch'><button id='btnSearch'>SEARCH: </button><textarea placeholder='@act Will Smith | @serietv | @gen azione' id='textArea' name='testo' rows='1' cols='44'></textarea></form><p id='infoFilm'> Film:</p>";
+  let filmInfo="<form id='formSearch'><button id='btnSearch'>SEARCH: </button><textarea placeholder='@act Will Smith | @serietv | @like | @gen azione' id='textArea' name='testo' rows='1' cols='55' maxlength='55'></textarea></form><p id='infoFilm'> Film:</p>";
   document.write("<br><br><iframe id='frame' sandbox='allow-scripts' allowfullscreen></iframe><button id='nextEp'>NEXT EP</button><div class='barra'><button style='display:none' id='btnStop'>STOP SCAN</button><button id='btnStart'>START SCAN</button>"+filmInfo+"</div>");
 
   //<form><label for='testo'>Inser:</label><textarea id='testo' name='testo' rows='1' cols='44' onchange='eseguiFunzione(this.value)'></textarea>
@@ -142,6 +200,15 @@ const initPage = () => {
         searchMovieLocal();
       })
 
+      textArea.addEventListener('keydown', function(event) {
+        // Verifica se il tasto premuto è "Invio" (codice 13)
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          // Chiama la tua funzione quando viene premuto "Invio"
+          searchMovieLocal();
+        }
+      });
+
     nextEp.addEventListener('click', function(){
         nextShow();
       })
@@ -168,22 +235,76 @@ const initPage = () => {
     let attivo=false;
     window.addEventListener('scroll', async function() {
         // Altezza dello scroll del client
-        if(attivo){console.log('ancora attivo...'); return}
+        if(attivo){/* console.log('ancora attivo...');*/ return}
         var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
         // Altezza area Client total
         var clientHeight = document.documentElement.clientHeight;
-      
+      //window.innerHeight + window.scrollY >= document.body.offsetHeight;
         // Verifica se l'utente è sceso fino in fondo
-        if (!attivo && scrollTop + 930 >= clientHeight && scrollTop > 500  && dataDB.totMovieDb > dataDB.createdThumb+10) {
+
+        //scrollTop + 930 >= clientHeight
+        //scrollTop > 2500  === se cerchi un film...ti trova esempio 10 film...appena scendi sotto...nn ti carica altri film
+        if (!attivo && window.innerHeight + window.scrollY >= document.body.offsetHeight && scrollTop > 2500  && dataDB.totMovieDb > dataDB.createdThumb+10) {
           attivo=true;
           await dataDB.getEntriesAndPrint_(15);
           console.log('Sei arrivato in fondo alla pagina!');
         //  loggerStatus('sto caricando altri film...');
-        //await sleep(1000);
+         await sleep(1500);
          attivo=false;
         }
 
       });
+
+const dropArea=document.body;
+
+       // Gestisci l'evento di trascinamento
+    dropArea.addEventListener('dragover', function (e) {
+      e.preventDefault(); // Evita il comportamento predefinito (ad es. apertura del file nel browser)
+      dropArea.style.background = '#e1e1e1'; // Cambia lo stile dell'area di rilascio quando un file viene trascinato sopra
+  });
+
+  dropArea.addEventListener('dragleave', function () {
+      dropArea.style.background = ''; // Ripristina lo stile dell'area di rilascio quando il file viene trascinato fuori
+  });
+
+  dropArea.addEventListener('drop', function (e) {
+      e.preventDefault(); // Evita il comportamento predefinito (ad es. apertura del file nel browser)
+      dropArea.style.background = ''; // Ripristina lo stile dell'area di rilascio
+
+      // Accedi ai file trascinati
+      const files = e.dataTransfer.files;
+    let file;
+      // Puoi ora gestire i file come necessario
+      for (let i = 0; i < files.length; i++) {
+          file = files[i];
+          console.log('Nome del file:', file.name);
+          console.log('Tipo del file:', file.type);
+          console.log('Dimensioni del file:', file.size, 'byte');
+      }
+      if (file.type === 'application/json') {
+         // Leggi il contenuto del file come testo
+          file.text().then(jsonString => {
+          // Ora puoi lavorare con la stringa JSON
+          console.log('Stringa JSON:', jsonString);
+
+          // Converti la stringa JSON in un oggetto JavaScript
+          const jsonObject = JSON.parse(jsonString);
+
+          // Ora puoi lavorare con l'oggetto JSON come desideri
+          console.log('Oggetto JSON:', jsonObject);
+
+          //apri la funzione x caricare il file nel db...
+          dataDB.uploadDB_byFile(jsonObject)
+        })
+
+        
+      }else{
+        loggerStatus('CIakkariello Error Code: # 8==0 ')
+      }
+      
+
+  });
+
 
   }
 let contGlobalLive;
@@ -362,10 +483,30 @@ const checkParameterTvshow= (url)=>{
 }
 
 
-  const clickMe =(src)=>{
+const clickMe =(src)=>{
     document.getElementById('frame').src=src;
 
 }
+const clickImg = (el)=>{
+
+  //console.dir(el.parentElement.childNodes[3].childNodes[0].textContent)
+	let id=el.attributes[0].value;
+	let nameMovie=el.parentElement.childNodes[3].childNodes[0].textContent;
+
+	//se già cè nei preferiti...rimuovi
+  if(localStorage.getItem(nameMovie)){
+     localStorage.removeItem(nameMovie);
+     loggerStatus("Rimosso tra i preferiti - "+nameMovie)
+     el.src="https://latitanti.altervista.org/star.png"
+  }else{ 
+    //altrimenti imposta nei preferiti
+    localStorage.setItem(nameMovie,id);
+    loggerStatus("Aggiunto Tra i preferiti - "+nameMovie)
+    el.src="https://latitanti.altervista.org/star_gold.png"
+  } }
+	
+	
+	
 
 const getMovideInfo = async (nameMovie)=>{
     var apiKey = 'f9fe2473';
@@ -643,6 +784,19 @@ const searchMovie=(movie)=>{
 
 }
 
+const bodyCleanThumb =()=>{
+          //searchMovieLocalByActor(actor);
+          var postcards = document.getElementsByClassName('postcard');
+
+          // Converti la NodeList in un array per semplificare l'iterazione
+          var postcardArray = Array.from(postcards);
+          
+          // Rimuovi ciascun elemento dal DOM
+          postcardArray.forEach(function(postcard) {
+            postcard.remove();
+          });
+}
+
 //cerca movie nell array dataBH---indexeDB
 const searchMovieLocal=(movie)=>{
     //debugger
@@ -671,6 +825,7 @@ const searchMovieLocal=(movie)=>{
      if(movie.includes("@GEN")){ //serie:
             let gen= movie.replace("@GEN ", "");
            // searchMovieLocalByGenre(gen);
+           bodyCleanThumb()
             dataDB.mainSearch('genre_ids',gen);
             return
       }
@@ -691,7 +846,42 @@ const searchMovieLocal=(movie)=>{
           return
        }
 
-    console.log('ricerca...'+textSearchArea)
+
+     
+       if(movie.includes("@DOWNLOAD")){
+       dataDB.writeBlob();
+       }
+       if(movie.includes("@UPLOAD")){
+        let url_upload= movie.replace("@UPLOAD ", "");
+        url_upload=url_upload.toLocaleLowerCase();
+
+        dataDB.uploadDB_update(url_upload);
+        return
+        }
+
+       if(movie.includes("@LIKE")){
+       
+        bodyCleanThumb();
+// Inizializza un array vuoto per contenere gli oggetti
+        var arrayOggetti = [];
+//debugger
+// Itera attraverso le chiavi in localStorage
+ // for (var chiave in localStorage) {
+for (var i = 0; i < localStorage.length; i++){
+
+  if(!(localStorage.getItem(localStorage.key(i) ) ) ){continue}
+  if(localStorage.getItem(localStorage.key(i)).length > 10 ){continue}
+    // Recupera la stringa associata alla chiave
+    let strr=localStorage.key(i)
+    strr=strr.toLocaleUpperCase();
+      dataDB.mainSearch('film',strr);
+      //arrayOggetti.push(valoreStringa);
+}
+
+        return
+     }
+
+    console.log('ricerca tramite nome...'+textSearchArea)
 
     //CERCA TRAMITE NOME FILM
     dataDB.mainSearch('film',movie);
@@ -1007,6 +1197,10 @@ class INDEX_DB {
 
         request.onerror = (event) => { reject(event.target.error); };
 
+        ///
+
+////  CREA UNA SORTA DI BACKUP DEI FILM QUANDO STREAMINGCOMMUNITY CAMBIA DOMINIO
+        /////
         //prima volta o upgrade versione db
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
@@ -1039,30 +1233,174 @@ class INDEX_DB {
           };
     }
 
-    searchDataPromise(key) { // cerca by nome film key
+    writeBlob() { // cerca by nome film key
     
-        return new Promise((resolve, reject) => {
-            this.startTransaction('readonly');
-            const getRequest = this.objectStore.get(key);
+            const transaction=this.startTransaction('readonly');
 
-            getRequest.onsuccess = function() {
-                const oggettoTrovato = getRequest.result;
+            this.transaction = transaction;
+            const objectStore = this.objectStore;
+
+            let cursorRequest = objectStore.openCursor();
+            var datiArray = [];
+    
+
+            cursorRequest.onsuccess = function(event) {
+              let cursor = event.target.result;
           
-                if (oggettoTrovato) {
-                  console.log('Oggetto trovato nel database:', oggettoTrovato);
-                    resolve(oggettoTrovato)
-              
-                } else {
-                  console.log('Oggetto non trovato nel database.');
-                    reject(undefined)
- 
-                  }
+              if (cursor) {
+                // Aggiungi i dati dell'elemento corrente all'array
+                datiArray.push(cursor.value);
+          
+                // Passa al prossimo elemento
+                cursor.continue();
+              } else {
+                // Tutte le voci sono state elaborate, crea un file scaricabile
+                     // Converti l'array di dati in una stringa JSON
+                    let datiJSON = JSON.stringify(datiArray);
+                     // Crea un nuovo Blob contenente la stringa JSON
+                    var blob = new Blob([datiJSON], { type: 'application/json' });
+
+                    // Crea un URL per il Blob
+                    var blobURL = URL.createObjectURL(blob);
+                    // Crea un ancoraggio per scaricare il file
+      var link = document.createElement('a');
+      link.href = blobURL;
+      link.download = 'croflix-backup.json'; // Nome del file scaricato
+      link.textContent = 'Clicca qui x Fare il backup dei film - Scarica Dati';
+
+      // Aggiungi l'ancoraggio al documento
+      document.body.appendChild(link);
+              }
+            
                 }
-              });
+          
 
         }
 
-    searchData(key,callback=undefined) { // cerca by nome film key
+        uploadDB_byFile(file) { // cerca by nome film key
+          alert('Verra Cancellato il db Precedente...')
+         // const corsFuck = 'https://corsproxy.io/?'
+       
+    
+          
+              // Apri la connessione a IndexedDB
+              console.dir(file);
+              //return
+
+              const transaction=this.startTransaction();
+
+              this.transaction = transaction;
+              const objectStore = this.objectStore;
+              let cancellaRequest
+    
+              // Cancella tutte le voci esistenti nell'oggetto store
+              function customPrompt(messaggio) { return (messaggio = prompt(messaggio)) === null || !messaggio.trim() ? null : messaggio; }
+              var risultatoPrompt = customPrompt('Sicuro di cancellare il DB esistente?!?:');
+              if(risultatoPrompt === null){ loggerStatus('Azione Annullata') }else{ 
+              cancellaRequest = objectStore.clear();}
+
+
+              cancellaRequest.onsuccess = function() {
+                // Scrivi i nuovi dati nell'oggetto store
+                //var scriviRequest = objectStore.add(datiConvertiti);
+                 // Importa ogni oggetto JSON nel database
+            file.forEach(data => {
+              objectStore.add(data);
+              });
+        
+              objectStore.onsuccess = function() {
+                  console.log('Dati importati con successo.');
+                };
+        
+                objectStore.onerror = function() {
+                  console.error('Errore durante l\'importazione dei dati.');
+                };
+              };
+
+
+              cancellaRequest.onerror = function() {
+                console.error('Errore durante la cancellazione delle vecchie voci.');
+              };
+        
+
+
+            
+    
+        
+        
+
+      }
+
+        uploadDB_update(url) { // cerca by nome film key
+          alert('Verra Cancellato il db Precedente...')
+          const corsFuck = 'https://corsproxy.io/?'
+          //const url = 'https://corsproxy.io/?'
+          // + encodeURIComponent('https://api.domain.com/...');
+          var urlFileJSON = url;// url con il file json con i dati
+
+          // Effettua una richiesta Fetch per ottenere il file JSON
+          fetch(corsFuck+urlFileJSON,/*{  method: 'GET',
+          headers: {
+            //'Origin': 'https://latitanti.altervista.org',
+            'originWhitelist': [], // Allow all origins
+            'requireHeader': ['origin', 'x-requested-with'],
+            'removeHeaders': ['cookie', 'cookie2']
+            // Sostituisci con il tuo origin
+          } }*/ )  //  fetch(urlFileJSON)
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Errore nella richiesta HTTP');
+              }
+              return response.json();
+            })
+            .then(datiConvertiti => {
+              // Apri la connessione a IndexedDB
+              console.dir(datiConvertiti);
+              return
+
+              const transaction=this.startTransaction('readonly');
+
+              this.transaction = transaction;
+              const objectStore = this.objectStore;
+              let cancellaRequest
+    
+              // Cancella tutte le voci esistenti nell'oggetto store
+              function customPrompt(messaggio) { return (messaggio = prompt(messaggio)) === null || !messaggio.trim() ? null : messaggio; }
+              var risultatoPrompt = customPrompt('Sicuro di cancellare il DB esistente?!?:');
+              if(risultatoPrompt === null){ loggerStatus('Azione Annullata') }else{ 
+              cancellaRequest = objectStore.clear();}
+
+
+              cancellaRequest.onsuccess = function() {
+                // Scrivi i nuovi dati nell'oggetto store
+                var scriviRequest = objectStore.add(datiConvertiti);
+        
+                scriviRequest.onsuccess = function() {
+                  console.log('Dati importati con successo.');
+                };
+        
+                scriviRequest.onerror = function() {
+                  console.error('Errore durante l\'importazione dei dati.');
+                };
+              };
+
+
+              cancellaRequest.onerror = function() {
+                console.error('Errore durante la cancellazione delle vecchie voci.');
+              };
+        
+
+
+            }) .catch(error => {
+              console.error('Errore durante la richiesta del file JSON:', error);
+            });
+    
+        
+        
+
+      }
+
+    /*searchData(key,callback=undefined) { // cerca by nome film key
 
         this.startTransaction('readonly')
 
@@ -1091,7 +1429,7 @@ class INDEX_DB {
           callback(null);
         }
       };
-    };
+    };*/
 
     search(key) { // cerca by nome film key
 
@@ -1209,6 +1547,8 @@ conf(key) { // cerca by nome film key
         cursorRequest.onsuccess = function (event) {
           let cursor = event.target.result;
 
+
+    
           let arryset=true;
 
           //skippa il cont dei film
@@ -1242,6 +1582,8 @@ conf(key) { // cerca by nome film key
                     dataDB.createMovieThumb(cursor.value);
                   }
           }
+
+      
       
             // Vai al prossimo oggetto nel cursore
             if(cursor) { cursor.continue()}
@@ -1339,7 +1681,8 @@ conf(key) { // cerca by nome film key
     createMovieThumb({film,linkHost,poster_path,overview,genre_ids,id,release_date,cast,type,trailer }){
        this.createdThumb++;
       try{
-            let div=`<div class='postcard'><img src='${poster_path}' alt='Movie Poster'></img>`;
+        
+            let div=`<div class='postcard'><img data='${id}' onclick='clickImg(this)' src='https://latitanti.altervista.org/star.png' class='like'><img src='${poster_path}'></img> `;
             let serieTvHtml= type==='tv' ? `<a class="seriefilm">SerieTv</a>` : ``;
             let postCard=`${serieTvHtml}<div class='postcard-content'><div class='title'>${film}</div><div class='description'>${overview}</div>`;
             let trailerHtml=trailer ? `<a href="${trailer}" target="new_blank" class="trailer">Trailer</a>` : ``; 
