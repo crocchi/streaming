@@ -1121,11 +1121,19 @@ class Scrappy {
         this.domParse= new DOMParser();
         this.virutalDom= this.domParse.parseFromString(res,"text/html");
         this.element=this.virutalDom.all;
+
        // console.log( this.virutalDom )
-        this.year= this.virutalDom.querySelector("#content > div > div.info-wrap > div.info > div.overview-tab.overview > div.features > span:nth-child(1)").textContent
+       let tempElement=this.virutalDom.querySelector("#content > div > div.info-wrap > div.info > div.overview-tab.overview > div.features");
+       
+       let tempEll=tempElement.querySelectorAll('span');
+       //tempEll[0].textContent
+       // 2 element - 0= anno 1=stagione o niente se è un fillm
+        this.year= tempEll[0].textContent//this.virutalDom.querySelector("#content > div > div.info-wrap > div.info > div.overview-tab.overview > div.features > span:nth-child(1)").textContent
         //'1987 - 
-           this.minuti_stagione= this.virutalDom.querySelector("#content > div > div.info-wrap > div.info > div.overview-tab.overview > div.features > span:nth-child(2)").textContent;
+           this.minuti_stagione= tempEll[1].textContent//this.virutalDom.querySelector("#content > div > div.info-wrap > div.info > div.overview-tab.overview > div.features > span:nth-child(2)").textContent;
           this.minuti_stagione.includes('stagion') ? this.serieOfilm='serie' : this.serieOfilm='film';
+         
+         
           this.year= this.year.replace(" - ", "");
           
           const risultato = {
