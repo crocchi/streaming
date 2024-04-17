@@ -1124,7 +1124,7 @@ class Scrappy {
        // console.log( this.virutalDom )
         this.year= this.virutalDom.querySelector("#content > div > div.info-wrap > div.info > div.overview-tab.overview > div.features > span:nth-child(1)").textContent
         //'1987 - 
-           this.minuti_stagione= this.virutalDom.querySelector("#content > div > div.info-wrap > div.info > div.overview-tab.overview > div.features > span:nth-child(1)").textContent;
+           this.minuti_stagione= this.virutalDom.querySelector("#content > div > div.info-wrap > div.info > div.overview-tab.overview > div.features > span:nth-child(2)").textContent;
           this.minuti_stagione.includes('stagion') ? this.serieOfilm='serie' : this.serieOfilm='film';
           this.year= this.year.replace(" - ", "");
           
